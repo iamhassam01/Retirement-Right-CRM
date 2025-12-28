@@ -1,0 +1,162 @@
+import React from 'react';
+import { 
+  LayoutDashboard, Users, UserPlus, Trello, Calendar, 
+  Presentation, FileText, PieChart, Settings, MessageSquare, Shield,
+  ChevronLeft, ChevronRight, LogOut, ListTodo
+} from 'lucide-react';
+
+interface SidebarProps {
+  currentView: string;
+  setCurrentView: (view: string) => void;
+  isCollapsed: boolean;
+  toggleSidebar: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollapsed, toggleSidebar }) => {
+  const mainNav = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'tasks', label: 'Follow-ups', icon: ListTodo },
+    { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'pipeline', label: 'Pipeline', icon: Trello },
+  ];
+
+  const relationshipNav = [
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'leads', label: 'Leads', icon: UserPlus },
+    { id: 'workshops', label: 'Events', icon: Presentation },
+    { id: 'communications', label: 'Communications', icon: MessageSquare },
+  ];
+
+  const adminNav = [
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'reports', label: 'Reports', icon: PieChart },
+    { id: 'team', label: 'Team & Access', icon: Shield },
+  ];
+
+  const NavItem: React.FC<{ item: any }> = ({ item }) => {
+    const isActive = currentView === item.id;
+    const Icon = item.icon;
+    
+    return (
+      <button
+        onClick={() => setCurrentView(item.id)}
+        className={`relative w-full flex items-center px-3 py-3 rounded-xl transition-all duration-200 group mb-1.5 ${
+          isActive 
+            ? 'bg-gradient-to-r from-teal-500/10 to-transparent text-teal-400' 
+            : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'
+        } ${isCollapsed ? 'justify-center' : 'justify-between'}`}
+      >
+        <div className={`flex items-center gap-3.5 ${isCollapsed ? 'justify-center w-full' : ''}`}>
+          <Icon 
+            size={22} 
+            strokeWidth={1.5}
+            className={`flex-shrink-0 transition-colors duration-200 ${
+              isActive ? 'text-teal-400' : 'text-slate-400 group-hover:text-slate-200'
+            }`} 
+          />
+          
+          <span className={`text-[14px] font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${
+            isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
+          } ${isActive ? 'text-teal-50 font-semibold' : ''}`}>
+            {item.label}
+          </span>
+        </div>
+
+        {/* Active Indicator Strip */}
+        {isActive && !isCollapsed && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-teal-500 rounded-r-full shadow-[0_0_12px_rgba(20,184,166,0.5)]" />
+        )}
+
+        {/* Tooltip for Collapsed State */}
+        {isCollapsed && (
+          <div className="absolute left-[calc(100%+10px)] top-1/2 -translate-y-1/2 px-3 py-1.5 bg-slate-800 text-white text-xs font-medium rounded-md shadow-xl border border-slate-700 opacity-0 -translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 z-[100] whitespace-nowrap">
+            {item.label}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 border-l border-b border-slate-700 rotate-45"></div>
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  const SectionLabel = ({ label }: { label: string }) => (
+    <div className={`px-4 mb-3 mt-6 transition-all duration-300 overflow-hidden ${isCollapsed ? 'h-0 opacity-0' : 'h-auto opacity-100'}`}>
+      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">
+        {label}
+      </p>
+    </div>
+  );
+
+  return (
+    <div 
+      className={`fixed left-0 top-0 h-screen bg-[#0F172A] border-r border-slate-800 shadow-2xl z-50 flex flex-col transition-all duration-300 ease-in-out ${
+        isCollapsed ? 'w-20' : 'w-72'
+      }`}
+    >
+      {/* Brand Header */}
+      <div className={`h-20 flex items-center border-b border-slate-800/80 transition-all duration-300 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-6'}`}>
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 bg-gradient-to-tr from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-900/20 flex-shrink-0">
+             <div className="w-4 h-4 bg-white rounded-md transform rotate-45"></div>
+          </div>
+          <div className={`flex flex-col transition-all duration-300 overflow-hidden ${
+            isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
+          }`}>
+            <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap">
+              Retirement<span className="text-teal-500">Right</span>
+            </span>
+            <span className="text-xs text-slate-500 font-medium tracking-wide">Advisor OS v2.0</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Groups - Hidden Scrollbar */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        
+        <div className="mb-2">
+          {!isCollapsed && <SectionLabel label="Workspace" />}
+          {mainNav.map(item => <NavItem key={item.id} item={item} />)}
+        </div>
+
+        <div className="mb-2">
+          {!isCollapsed && <SectionLabel label="Relationships" />}
+          {relationshipNav.map(item => <NavItem key={item.id} item={item} />)}
+        </div>
+
+        <div>
+           {!isCollapsed && <SectionLabel label="Intelligence" />}
+           {adminNav.map(item => <NavItem key={item.id} item={item} />)}
+        </div>
+      </div>
+
+      {/* Toggle Button - Integrated into border */}
+      <button 
+        onClick={toggleSidebar}
+        className="absolute -right-3 top-24 w-6 h-6 bg-slate-800 border border-slate-700 text-slate-400 rounded-full flex items-center justify-center hover:text-white hover:bg-teal-600 hover:border-teal-500 transition-all shadow-md z-50 focus:outline-none"
+      >
+        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
+      {/* User Footer */}
+      <div className="p-4 border-t border-slate-800 bg-[#0B1120] shrink-0">
+        <button 
+          onClick={() => setCurrentView('settings')}
+          className={`flex items-center gap-3.5 w-full p-2.5 rounded-xl hover:bg-slate-800/80 transition-all group ${isCollapsed ? 'justify-center' : 'text-left'}`}
+        >
+          <div className="relative">
+            <img src="https://picsum.photos/100/100" alt="John Jenkins" className="w-10 h-10 rounded-full border-2 border-slate-700 group-hover:border-teal-500 transition-colors" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#0B1120]"></div>
+          </div>
+          
+          <div className={`flex-1 min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'}`}>
+            <p className="text-sm font-semibold text-white truncate group-hover:text-teal-400 transition-colors">John Jenkins</p>
+            <p className="text-xs text-slate-500 truncate">Senior Wealth Advisor</p>
+          </div>
+          
+          <LogOut size={18} className={`text-slate-500 group-hover:text-rose-400 transition-colors duration-300 ${isCollapsed ? 'hidden' : 'block'}`} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;

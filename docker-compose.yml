@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # 1. The Postgres Database
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: crm_user
+      POSTGRES_PASSWORD: secure_password_123
+      POSTGRES_DB: retirement_crm
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # 2. Your CRM App
+  app:
+    build: .
+    restart: always
+    ports:
+      - "80:3001" # Map VPS port 80 (HTTP) to App port 3001
+    environment:
+      # Connects to the 'db' service defined above
+      DATABASE_URL: "postgresql://crm_user:secure_password_123@db:5432/retirement_crm?schema=public"
+      PORT: 3001
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
