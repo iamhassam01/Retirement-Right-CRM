@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client'; // Prisma Client imported
 const prisma = new PrismaClient();
 
 // This script populates the database with the MOCK_CLIENTS from your constants
@@ -7,24 +7,32 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding ...');
 
-  // Mock data replicated here to avoid importing frontend Types/Constants in Node directly
-  // (Simplifies TS configuration for this specific VPS setup)
-  
   // 1. Clear existing data
   await prisma.activity.deleteMany({});
   await prisma.event.deleteMany({});
   await prisma.client.deleteMany({});
+  await prisma.user.deleteMany({});
 
-  // 2. Create Sterling Client
+  // 2. Create Advisor User
+  const advisor = await prisma.user.create({
+    data: {
+      email: 'john@example.com',
+      name: 'John Jenkins',
+      password: 'hashed_password_here', // In real app, hash this!
+      role: 'ADVISOR'
+    }
+  });
+
+  // 3. Create Sterling Client
   const sterling = await prisma.client.create({
     data: {
       name: 'Robert & Martha Sterling',
       email: 'robert.sterling@example.com',
       phone: '(555) 123-4567',
       status: 'Active',
-      advisor: 'John Jenkins',
+      advisorId: advisor.id,
       aum: 1250000,
-      lastContact: 'Today',
+      lastContact: new Date(),
       nextStep: 'Quarterly Review',
       pipelineStage: 'Client Onboarded',
       riskProfile: 'Conservative',
@@ -42,7 +50,7 @@ async function main() {
             user: 'AI Assistant',
             duration: '4m 12s',
             status: 'Completed',
-            tags: ['RMD', 'Tax', 'Urgent'],
+            // tags removed as not in schema
             transcript: [
               { speaker: 'Client', text: 'Hi, I was reading about the new RMD rules. Do I need to withdraw by year-end?', time: '00:15' },
               { speaker: 'AI', text: 'Yes, Robert. For your account type, the deadline is December 31st.', time: '00:22' }
@@ -61,7 +69,7 @@ async function main() {
 
   console.log(`Created client: ${sterling.name}`);
 
-  // 3. Create Event for Sterling
+  // 4. Create Event for Sterling
   await prisma.event.create({
     data: {
       title: 'Review with Robert & Martha',
@@ -69,7 +77,8 @@ async function main() {
       endTime: new Date(new Date().setHours(11, 30, 0, 0)),
       type: 'Meeting',
       status: 'Scheduled',
-      clientId: sterling.id
+      clientId: sterling.id,
+      advisorId: advisor.id
     }
   });
 

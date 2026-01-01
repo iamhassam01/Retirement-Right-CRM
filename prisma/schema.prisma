@@ -1,1 +1,200 @@
-��ޭ�h��bz{
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Users & Auth ---
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String // Hashed
+  name      String
+  role      Role     @default(ADVISOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clients Client[]
+  tasks   Task[]
+  events  Event[]
+}
+
+enum Role {
+  ADMIN
+  ADVISOR
+  STAFF
+}
+
+// --- Clients & Leads ---
+model Client {
+  id            String  @id @default(uuid())
+  name          String
+  email         String?
+  phone         String?
+  status        String // e.g., "Active", "Prospect", "Lead"
+  pipelineStage String? // e.g., "New Lead", "Contacted"
+
+  advisorId String?
+  advisor   User?   @relation(fields: [advisorId], references: [id])
+
+  // Financial & Profile Info
+  aum             Float?   @default(0)
+  riskProfile     String? // "Conservative", "Moderate", etc.
+  portfolioHealth String? // "On Track", "Review Needed"
+  tags            String[] // ["Retiree", "Golfer"]
+  imageUrl        String?
+
+  // Retirement Planning Fields
+  dateOfBirth       DateTime?
+  retirementDate    DateTime?
+  ssaEligibilityAge Int? // 62, 65, 67, 70
+  spouseName        String?
+  spouseDOB         DateTime?
+  beneficiaries     Json? // Array of {name, relationship, percentage}
+
+  // Additional Financial Details
+  annualIncome    Float?
+  netWorth        Float?
+  monthlyExpenses Float?
+  riskScore       Int? // 1-10 scale
+
+  // Timestamps
+  lastContact DateTime?
+  nextStep    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  activities Activity[]
+  events     Event[]
+  tasks      Task[]
+  documents  Document[]
+  communicationLogs CommunicationLog[]
+}
+
+// --- Activities (Calls, Emails, AI Logs) ---
+model Activity {
+  id       String @id @default(uuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  type      String // "call", "sms", "email", "meeting"
+  subType   String? // "ai", "human"
+  direction String? // "inbound", "outbound"
+  user      String? // "AI Assistant", "John Jenkins"
+
+  description String?
+  date        DateTime @default(now())
+  duration    String? // "4m 12s"
+  status      String? // "Completed", "Voicemail"
+
+  // AI & Vapi Specifics
+  aiAnalysis   Json? // Stores summary, intent, sentiment, confidence
+  transcript   Json? // Stores array of speaker/text objects
+  recordingUrl String? // URL to audio file
+
+  createdAt DateTime @default(now())
+}
+
+// --- Calendar & Events ---
+model Event {
+  id        String   @id @default(uuid())
+  title     String
+  startTime DateTime
+  endTime   DateTime
+  type      String // "Meeting", "Workshop", "Call"
+  status    String   @default("Scheduled") // "Scheduled", "Completed", "Cancelled"
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  advisorId String?
+  advisor   User?   @relation(fields: [advisorId], references: [id])
+
+  // Workshop specifics
+  capacity   Int?
+  registered Int?    @default(0)
+  location   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Tasks & Follow-ups ---
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  priority    String    @default("Medium") // "High", "Medium", "Low"
+  status      String    @default("Pending") // "Pending", "Completed"
+  type        String? // "Call", "Email", "Prep"
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- Documents ---
+model Document {
+  id       String  @id @default(uuid())
+  name     String
+  type     String // "pdf", "docx"
+  size     String?
+  url      String // Path or S3 URL
+  category String? // "Client", "Compliance"
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --- System Settings ---
+model Settings {
+  id        String   @id @default(uuid())
+  key       String   @unique // e.g., "pipeline_stages"
+  value     Json // Stores configuration
+  updatedAt DateTime @updatedAt
+}
+
+// --- Communication Templates ---
+model Template {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // "Email" or "SMS"
+  subject     String?
+  body        String
+  variables   String[] // ["client_name", "advisor_name"]
+  usageCount  Int      @default(0)
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  logs        CommunicationLog[]
+}
+
+// --- Communication Logs ---
+model CommunicationLog {
+  id          String    @id @default(uuid())
+  recipientId String?
+  recipient   Client?   @relation(fields: [recipientId], references: [id])
+  templateId  String?
+  template    Template? @relation(fields: [templateId], references: [id])
+  channel     String    // "Email", "SMS"
+  status      String    // "Delivered", "Opened", "Replied", "Failed"
+  sentAt      DateTime  @default(now())
+  metadata    Json?
+}

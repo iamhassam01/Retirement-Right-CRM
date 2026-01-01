@@ -1,0 +1,263 @@
+import React, { useState, useEffect } from 'react';
+import { Client, Activity } from '../types';
+import { activityService } from '../services/activity.service';
+import { clientService } from '../services/client.service';
+import { documentService, Document } from '../services/document.service';
+import {
+  Phone, Mail, Calendar, FileText, Shield, ChevronRight,
+  MessageSquare, Mic, Play, Bot, ChevronDown, ChevronUp, Download,
+  Loader2, Volume2
+} from 'lucide-react';
+import Modal from './Modal';
+
+interface ClientProfileProps {
+  client: Client;
+  onBack: () => void;
+}
+
+const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, onBack }) => {
+  const [activeTab, setActiveTab] = useState('history');
+  const [expandedActivity, setExpandedActivity] = useState<string | null>(null);
+  const [clientData, setClientData] = useState<Client>(initialClient);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modal States
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+
+  const tabs = [
+    { id: 'history', label: 'History' },
+    { id: 'docs', label: 'Documents' }
+  ];
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [activitiesData, docsData] = await Promise.all([
+          activityService.getByClient(initialClient.id),
+          documentService.getAll(initialClient.id)
+        ]);
+        setActivities(activitiesData);
+        setDocuments(docsData);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [initialClient.id]);
+
+  const toggleExpand = (id: string) => {
+    setExpandedActivity(expandedActivity === id ? null : id);
+  };
+
+  const handleStartCall = () => {
+    setIsCallModalOpen(true);
+  };
+
+  const RenderAiCall = ({ activity }: { activity: Activity }) => {
+    const isExpanded = expandedActivity === activity.id;
+    const analysis = activity.aiAnalysis as any;
+    const transcript = activity.transcript as any[];
+
+    return (
+      <div className={`rounded-xl border transition-all duration-300 overflow-hidden ${isExpanded ? 'bg-white border-teal-200 shadow-md ring-1 ring-teal-100' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
+        <div onClick={() => toggleExpand(activity.id)} className="p-4 flex items-center justify-between cursor-pointer">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
+              <Bot size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-navy-900">AI Voice Agent (Vapi)</h4>
+                <span className="text-xs text-slate-400">• {new Date(activity.date).toLocaleDateString()}</span>
+              </div>
+              <p className="text-sm text-slate-600 mt-0.5">{activity.description}</p>
+            </div>
+          </div>
+          <button className="text-slate-400 hover:text-teal-600 transition-colors">
+            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="bg-slate-50/50 border-t border-slate-100 p-6 space-y-6">
+            {/* Audio Player */}
+            {activity.recordingUrl && (
+              <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg">
+                <Volume2 size={18} className="text-slate-500" />
+                <audio controls className="flex-1 h-8">
+                  <source src={activity.recordingUrl} type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
+
+            {/* AI Summary */}
+            {analysis && (
+              <div className="space-y-2">
+                <h5 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2 flex items-center gap-1">
+                  <Mic size={12} /> AI Analysis
+                </h5>
+                <p className="text-sm text-navy-800">{typeof analysis.summary === 'string' ? analysis.summary : JSON.stringify(analysis.summary)}</p>
+                <div className="flex gap-3 mt-2">
+                  <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-1 rounded-full">Intent: {analysis.intent || 'N/A'}</span>
+                  <span className="text-xs bg-amber-50 text-amber-600 px-2 py-1 rounded-full">Sentiment: {analysis.sentiment || 'N/A'}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Transcript */}
+            {transcript && transcript.length > 0 && (
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Transcript</p>
+                <div className="space-y-2 max-h-60 overflow-y-auto bg-white p-3 rounded-lg border border-slate-200">
+                  {transcript.map((line: any, i: number) => (
+                    <div key={i} className="text-sm">
+                      <span className={`font-bold ${line.speaker === 'AI' ? 'text-indigo-600' : 'text-slate-700'}`}>{line.speaker}: </span>
+                      <span className="text-slate-600">{line.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#F8FAFC]">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-8 py-6 shadow-sm z-10">
+        <button onClick={onBack} className="text-sm text-slate-400 hover:text-navy-900 mb-4 flex items-center gap-1 transition-colors">
+          <ChevronRight size={14} className="rotate-180" /> Back to List
+        </button>
+
+        <div className="flex justify-between items-start">
+          <div className="flex gap-6 items-center">
+            <img src={clientData.imageUrl || 'https://via.placeholder.com/100'} className="w-20 h-20 rounded-full border-4 border-slate-50 shadow-md" alt={clientData.name} />
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-navy-900">{clientData.name}</h1>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700">
+                  {clientData.status}
+                </span>
+              </div>
+              <div className="flex items-center gap-6 text-sm text-slate-500">
+                <span className="flex items-center gap-1.5"><Mail size={14} /> {clientData.email}</span>
+                <span className="flex items-center gap-1.5"><Phone size={14} /> {clientData.phone}</span>
+                <span className="flex items-center gap-1.5"><Shield size={14} /> {clientData.advisor}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button onClick={() => setIsScheduleModalOpen(true)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+              <Calendar size={16} /> Schedule
+            </button>
+            <button onClick={handleStartCall} className="flex items-center gap-2 px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 shadow-md transition-all">
+              <Phone size={16} /> Call (Vapi)
+            </button>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-8 mt-10 -mb-6">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-4 text-sm font-medium border-b-2 transition-all duration-200 ${activeTab === tab.id ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-navy-900'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-8">
+        {activeTab === 'history' && (
+          <div className="max-w-4xl mx-auto animate-fade-in">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-xl font-bold text-navy-900">Communication Timeline</h2>
+                <p className="text-slate-500 text-sm">Realtime feed from Vapi Voice Agents.</p>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="animate-spin text-navy-900" size={32} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {activities.length === 0 && <p className="text-slate-500 text-center py-8">No activities recorded yet.</p>}
+                {activities.map((activity) => (
+                  <RenderAiCall key={activity.id} activity={activity} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'docs' && (
+          <div className="animate-fade-in">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {documents.length > 0 ? (
+                <table className="w-full text-left">
+                  <tbody className="divide-y divide-slate-100">
+                    {documents.map((doc) => (
+                      <tr key={doc.id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4 flex items-center gap-3">
+                          <FileText size={16} className="text-slate-400" />
+                          <span className="text-sm font-medium text-navy-900">{doc.name}</span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-500">{doc.size}</td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => documentService.download(doc.id)}
+                            className="text-teal-600 hover:text-teal-700 text-sm"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-center py-12 text-slate-400">
+                  <FileText size={32} className="mx-auto mb-2" />
+                  <p>No documents uploaded for this client</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      <Modal isOpen={isScheduleModalOpen} onClose={() => setIsScheduleModalOpen(false)} title="Schedule Appointment">
+        <div className="p-4"><p>Scheduling via Calendar Service...</p></div>
+      </Modal>
+      <Modal isOpen={isCallModalOpen} onClose={() => setIsCallModalOpen(false)} title="Calling via Vapi...">
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="w-24 h-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6">
+            <Phone size={40} />
+          </div>
+          <h3 className="text-xl font-bold text-navy-900">Connected to Voice AI</h3>
+          <p className="text-slate-500 mb-8">Speaking with {clientData.name}...</p>
+          <button onClick={() => setIsCallModalOpen(false)} className="px-6 py-3 bg-rose-500 text-white rounded-xl font-bold shadow-lg">End Call</button>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default ClientProfile;
