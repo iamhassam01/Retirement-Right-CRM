@@ -12,6 +12,7 @@ const registerSchema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     name: z.string().min(2),
+    phone: z.string().optional(),
     role: z.enum(['ADMIN', 'ADVISOR', 'STAFF']).optional(),
 });
 
@@ -22,7 +23,7 @@ const loginSchema = z.object({
 
 export const register = async (req: Request, res: Response) => {
     try {
-        const { email, password, name, role } = registerSchema.parse(req.body);
+        const { email, password, name, phone, role } = registerSchema.parse(req.body);
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) {
@@ -36,6 +37,7 @@ export const register = async (req: Request, res: Response) => {
                 email,
                 password: hashedPassword,
                 name,
+                phone: phone || null,
                 role: role || 'ADVISOR',
             },
         });

@@ -22,8 +22,8 @@ export const authService = {
         return response.data;
     },
 
-    register: async (name: string, email: string, password: string): Promise<AuthResponse> => {
-        const response = await api.post<AuthResponse>('/auth/register', { name, email, password });
+    register: async (name: string, email: string, password: string, phone?: string): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>('/auth/register', { name, email, password, phone });
         if (response.data.token) {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
