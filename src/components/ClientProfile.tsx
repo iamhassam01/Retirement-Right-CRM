@@ -6,7 +6,7 @@ import { documentService, Document } from '../services/document.service';
 import {
   Phone, Mail, Calendar, FileText, Shield, ChevronRight,
   MessageSquare, Mic, Play, Bot, ChevronDown, ChevronUp, Download,
-  Loader2, Volume2, UploadCloud
+  Loader2, Volume2, UploadCloud, Edit2, Save, DollarSign, User
 } from 'lucide-react';
 import Modal from './Modal';
 
@@ -27,8 +27,20 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+  const [editForm, setEditForm] = useState({
+    name: initialClient.name,
+    email: initialClient.email || '',
+    phone: initialClient.phone || '',
+    status: initialClient.status,
+    pipelineStage: initialClient.pipelineStage || '',
+    aum: initialClient.aum || 0,
+    riskProfile: initialClient.riskProfile || '',
+    tags: initialClient.tags?.join(', ') || ''
+  });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   const tabs = [
     { id: 'history', label: 'History' },
@@ -82,6 +94,27 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
     } catch (error) {
       console.error('Upload failed:', error);
       setUploadStatus('error');
+    }
+  };
+
+  const handleSaveClient = async () => {
+    setSaveStatus('saving');
+    try {
+      const updatedData = {
+        ...editForm,
+        aum: parseFloat(String(editForm.aum)) || 0,
+        tags: editForm.tags.split(',').map(t => t.trim()).filter(t => t)
+      };
+      const updated = await clientService.update(initialClient.id, updatedData as any);
+      setClientData(prev => ({ ...prev, ...updated }));
+      setSaveStatus('success');
+      setTimeout(() => {
+        setIsEditModalOpen(false);
+        setSaveStatus('idle');
+      }, 1500);
+    } catch (error) {
+      console.error('Save failed:', error);
+      setSaveStatus('error');
     }
   };
 
@@ -183,6 +216,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
           </div>
 
           <div className="flex gap-3">
+            <button onClick={() => setIsEditModalOpen(true)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+              <Edit2 size={16} /> Edit
+            </button>
             <button onClick={() => setIsScheduleModalOpen(true)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <Calendar size={16} /> Schedule
             </button>
@@ -321,6 +357,109 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               {uploadStatus === 'error' && 'Failed - Try Again'}
             </button>
           )}
+        </div>
+      </Modal>
+      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Client Profile">
+        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Name</label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+              <input
+                type="email"
+                value={editForm.email}
+                onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Phone</label>
+              <input
+                type="tel"
+                value={editForm.phone}
+                onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Status</label>
+              <select
+                value={editForm.status}
+                onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value as any }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                <option value="Lead">Lead</option>
+                <option value="Prospect">Prospect</option>
+                <option value="Active">Active</option>
+                <option value="Churned">Churned</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Pipeline Stage</label>
+              <select
+                value={editForm.pipelineStage}
+                onChange={(e) => setEditForm(prev => ({ ...prev, pipelineStage: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                <option value="New Lead">New Lead</option>
+                <option value="Contacted">Contacted</option>
+                <option value="Appointment Booked">Appointment Booked</option>
+                <option value="Attended">Attended</option>
+                <option value="Proposal">Proposal</option>
+                <option value="Client Onboarded">Client Onboarded</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">AUM ($)</label>
+              <input
+                type="number"
+                value={editForm.aum}
+                onChange={(e) => setEditForm(prev => ({ ...prev, aum: parseFloat(e.target.value) || 0 }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Risk Profile</label>
+              <select
+                value={editForm.riskProfile}
+                onChange={(e) => setEditForm(prev => ({ ...prev, riskProfile: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                <option value="">Select...</option>
+                <option value="Conservative">Conservative</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Aggressive">Aggressive</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tags (comma separated)</label>
+              <input
+                type="text"
+                value={editForm.tags}
+                onChange={(e) => setEditForm(prev => ({ ...prev, tags: e.target.value }))}
+                placeholder="Retiree, Golfer, High Net Worth"
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleSaveClient}
+            disabled={saveStatus !== 'idle'}
+            className={`w-full py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${saveStatus === 'success' ? 'bg-emerald-600 text-white' : saveStatus === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white hover:bg-teal-700'}`}
+          >
+            {saveStatus === 'idle' && <><Save size={16} /> Save Changes</>}
+            {saveStatus === 'saving' && 'Saving...'}
+            {saveStatus === 'success' && 'Saved!'}
+            {saveStatus === 'error' && 'Failed - Try Again'}
+          </button>
         </div>
       </Modal>
     </div>
