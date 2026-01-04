@@ -7,14 +7,16 @@ import {
     deleteTeamMember,
     getAvailability,
     setAvailability,
-    getMyAvailability
+    getMyAvailability,
+    getAdvisorByName
 } from '../controllers/team.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// --- PUBLIC ROUTE (no auth) for Vapi to check availability ---
+// --- PUBLIC ROUTES (no auth) for Vapi/n8n integration ---
 router.get('/availability', getAvailability);
+router.get('/advisor', getAdvisorByName);  // For transfer call: lookup advisor by name
 
 // --- Protected Routes (require authentication) ---
 router.use(authenticateToken);

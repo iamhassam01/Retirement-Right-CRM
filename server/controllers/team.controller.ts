@@ -231,3 +231,74 @@ export const getMyAvailability = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to get availability' });
     }
 };
+
+// GET /api/team/advisor - Lookup advisor by name for transfer call (used by n8n)
+export const getAdvisorByName = async (req: Request, res: Response) => {
+    try {
+        const { name } = req.query;
+
+        if (!name || typeof name !== 'string') {
+            return res.status(400).json({
+                found: false,
+                error: 'Name parameter is required'
+            });
+        }
+
+        // Search for advisor by name (case-insensitive partial match)
+        const advisor = await prisma.user.findFirst({
+            where: {
+                name: {
+                    contains: name,
+                    mode: 'insensitive'
+                },
+                role: { in: ['ADVISOR', 'ADMIN'] }
+            },
+            select: {
+                id: true,
+                name: true,
+                phone: true,
+                email: true,
+                isAvailable: true
+            }
+        });
+
+        if (!advisor) {
+            return res.json({
+                found: false,
+                message: `No advisor found matching "${name}"`
+            });
+        }
+
+        if (!advisor.isAvailable) {
+            return res.json({
+                found: true,
+                isAvailable: false,
+                name: advisor.name,
+                message: `${advisor.name} is not available at the moment`
+            });
+        }
+
+        if (!advisor.phone) {
+            return res.json({
+                found: true,
+                isAvailable: true,
+                name: advisor.name,
+                phone: null,
+                message: `${advisor.name} is available but has no phone number configured`
+            });
+        }
+
+        // Success - return advisor info with phone for transfer
+        res.json({
+            found: true,
+            isAvailable: true,
+            name: advisor.name,
+            phone: advisor.phone,
+            email: advisor.email,
+            id: advisor.id
+        });
+    } catch (error) {
+        console.error('Error looking up advisor:', error);
+        res.status(500).json({ found: false, error: 'Failed to lookup advisor' });
+    }
+};

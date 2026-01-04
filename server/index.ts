@@ -24,6 +24,8 @@ import templatesRoutes from './routes/templates.routes';
 import workshopsRoutes from './routes/workshops.routes';
 import teamRoutes from './routes/team.routes';
 import settingsRoutes from './routes/settings.routes';
+import profileRoutes from './routes/profile.routes';
+import notificationRoutes from './routes/notifications.routes';
 
 // Import Middleware
 import { authenticateToken } from './middleware/auth.middleware';
@@ -86,6 +88,8 @@ app.use('/api/templates', authenticateToken, templatesRoutes);
 app.use('/api/workshops', authenticateToken, workshopsRoutes);
 app.use('/api/team', teamRoutes);  // Auth handled inside router - GET /availability is public
 app.use('/api/settings', authenticateToken, settingsRoutes);
+app.use('/api/profile', profileRoutes);  // Auth handled inside router
+app.use('/api/notifications', notificationRoutes);  // Auth handled inside router
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

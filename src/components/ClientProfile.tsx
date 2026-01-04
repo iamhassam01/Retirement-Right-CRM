@@ -6,7 +6,7 @@ import { documentService, Document } from '../services/document.service';
 import {
   Phone, Mail, Calendar, FileText, Shield, ChevronRight,
   MessageSquare, Mic, Play, Bot, ChevronDown, ChevronUp, Download,
-  Loader2, Volume2
+  Loader2, Volume2, UploadCloud
 } from 'lucide-react';
 import Modal from './Modal';
 
@@ -26,6 +26,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   // Modal States
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
 
   const tabs = [
     { id: 'history', label: 'History' },
@@ -37,7 +40,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
       try {
         const [activitiesData, docsData] = await Promise.all([
           activityService.getByClient(initialClient.id),
-          documentService.getAll(initialClient.id)
+          documentService.getAll(undefined, initialClient.id)
         ]);
         setActivities(activitiesData);
         setDocuments(docsData);
@@ -56,6 +59,30 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
   const handleStartCall = () => {
     setIsCallModalOpen(true);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUploadDocument = async () => {
+    if (!selectedFile) return;
+    setUploadStatus('uploading');
+    try {
+      const newDoc = await documentService.upload(selectedFile, 'Client', initialClient.id);
+      setDocuments(prev => [newDoc, ...prev]);
+      setUploadStatus('success');
+      setTimeout(() => {
+        setIsUploadModalOpen(false);
+        setUploadStatus('idle');
+        setSelectedFile(null);
+      }, 1500);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadStatus('error');
+    }
   };
 
   const RenderAiCall = ({ activity }: { activity: Activity }) => {
@@ -208,6 +235,15 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
         {activeTab === 'docs' && (
           <div className="animate-fade-in">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-navy-900">Client Documents</h3>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+              >
+                <UploadCloud size={16} /> Upload Document
+              </button>
+            </div>
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               {documents.length > 0 ? (
                 <table className="w-full text-left">
@@ -254,6 +290,37 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
           <h3 className="text-xl font-bold text-navy-900">Connected to Voice AI</h3>
           <p className="text-slate-500 mb-8">Speaking with {clientData.name}...</p>
           <button onClick={() => setIsCallModalOpen(false)} className="px-6 py-3 bg-rose-500 text-white rounded-xl font-bold shadow-lg">End Call</button>
+        </div>
+      </Modal>
+      <Modal isOpen={isUploadModalOpen} onClose={() => { setIsUploadModalOpen(false); setSelectedFile(null); setUploadStatus('idle'); }} title="Upload Document">
+        <div className="p-4 space-y-4">
+          <p className="text-sm text-slate-500">Upload a document for {clientData.name}</p>
+          <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center">
+            <input
+              type="file"
+              onChange={handleFileSelect}
+              className="hidden"
+              id="client-file-upload"
+            />
+            <label htmlFor="client-file-upload" className="cursor-pointer">
+              <UploadCloud size={32} className="mx-auto mb-2 text-slate-400" />
+              <p className="text-sm text-slate-600">
+                {selectedFile ? selectedFile.name : 'Click to select a file'}
+              </p>
+            </label>
+          </div>
+          {selectedFile && (
+            <button
+              onClick={handleUploadDocument}
+              disabled={uploadStatus !== 'idle'}
+              className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${uploadStatus === 'success' ? 'bg-emerald-600 text-white' : uploadStatus === 'error' ? 'bg-red-600 text-white' : 'bg-teal-600 text-white hover:bg-teal-700'}`}
+            >
+              {uploadStatus === 'idle' && 'Upload'}
+              {uploadStatus === 'uploading' && 'Uploading...'}
+              {uploadStatus === 'success' && 'Uploaded!'}
+              {uploadStatus === 'error' && 'Failed - Try Again'}
+            </button>
+          )}
         </div>
       </Modal>
     </div>
