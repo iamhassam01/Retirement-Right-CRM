@@ -121,6 +121,154 @@ export const handleN8nWebhook = async (req: Request, res: Response) => {
       return res.json({ success: true, id: newEvent.id });
     }
 
+    // Reschedule Event (for Vapi reschedule_appointment via n8n)
+    if (action === 'reschedule' && entity === 'event') {
+      const { email, existingDate, newDate, eventId } = data;
+
+      let event;
+
+      // Find event by ID if provided, or by client email + date
+      if (eventId) {
+        event = await prisma.event.findUnique({ where: { id: eventId } });
+      } else if (email && existingDate) {
+        // Find client by email first
+        const client = await prisma.client.findFirst({
+          where: { email: email }
+        });
+
+        if (client) {
+          // Find event for this client near the existing date
+          const dateStart = new Date(existingDate);
+          dateStart.setHours(0, 0, 0, 0);
+          const dateEnd = new Date(existingDate);
+          dateEnd.setHours(23, 59, 59, 999);
+
+          event = await prisma.event.findFirst({
+            where: {
+              clientId: client.id,
+              startTime: {
+                gte: dateStart,
+                lte: dateEnd
+              }
+            }
+          });
+        }
+      }
+
+      if (!event) {
+        return res.status(404).json({ success: false, error: 'Event not found' });
+      }
+
+      // Update to new date (keep same time, just change date)
+      const newStartTime = new Date(newDate);
+      newStartTime.setHours(new Date(event.startTime).getHours(), new Date(event.startTime).getMinutes());
+      const newEndTime = new Date(newDate);
+      newEndTime.setHours(new Date(event.endTime).getHours(), new Date(event.endTime).getMinutes());
+
+      const updatedEvent = await prisma.event.update({
+        where: { id: event.id },
+        data: {
+          startTime: newStartTime,
+          endTime: newEndTime,
+          status: 'Rescheduled'
+        }
+      });
+
+      return res.json({ success: true, event: updatedEvent, message: `Rescheduled to ${newDate}` });
+    }
+
+    // Log Message (for Vapi leave_message - creates callback task)
+    if (action === 'log_message') {
+      const { name, phone, reason, address, clientId } = data;
+
+      // Find or create client
+      let client;
+      if (clientId) {
+        client = await prisma.client.findUnique({ where: { id: clientId } });
+      } else if (phone) {
+        const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+        client = await prisma.client.findFirst({
+          where: { phone: { endsWith: normalizedPhone } }
+        });
+
+        if (!client) {
+          client = await prisma.client.create({
+            data: {
+              name: name || 'Unknown Caller',
+              phone: phone,
+              status: 'Lead',
+              pipelineStage: 'New Lead'
+            }
+          });
+        }
+      }
+
+      // Create callback task
+      const task = await prisma.task.create({
+        data: {
+          title: `Callback: ${name || 'Voicemail'}`,
+          description: `Reason: ${reason || 'No reason provided'}\nAddress: ${address || 'N/A'}\nPhone: ${phone}`,
+          priority: 'High',
+          type: 'Call',
+          status: 'Pending',
+          clientId: client?.id
+        }
+      });
+
+      // Log activity
+      if (client) {
+        await prisma.activity.create({
+          data: {
+            clientId: client.id,
+            type: 'call',
+            subType: 'voicemail',
+            direction: 'inbound',
+            description: `Message: ${reason || 'Voicemail left'}`,
+            status: 'Pending Callback'
+          }
+        });
+      }
+
+      return res.json({ success: true, taskId: task.id, message: 'Message logged and callback task created' });
+    }
+
+    // Log Transfer (for Vapi transfer_call - logs the transfer activity)
+    if (action === 'log_transfer') {
+      const { phone, advisorName, advisorId, clientId, success } = data;
+
+      // Find client if not provided
+      let client;
+      if (clientId) {
+        client = await prisma.client.findUnique({ where: { id: clientId } });
+      } else if (phone) {
+        const normalizedPhone = phone.replace(/\D/g, '').slice(-10);
+        client = await prisma.client.findFirst({
+          where: { phone: { endsWith: normalizedPhone } }
+        });
+      }
+
+      // Log activity
+      if (client) {
+        await prisma.activity.create({
+          data: {
+            clientId: client.id,
+            type: 'call',
+            subType: 'transfer',
+            direction: 'inbound',
+            description: `Call transferred to ${advisorName || 'advisor'}`,
+            status: success ? 'Completed' : 'Failed'
+          }
+        });
+
+        await prisma.client.update({
+          where: { id: client.id },
+          data: { lastContact: new Date() }
+        });
+      }
+
+      return res.json({ success: true, message: 'Transfer logged' });
+    }
+
     res.status(400).json({ error: 'Unknown action or entity' });
   } catch (error) {
     console.error('n8n Webhook Error:', error);
