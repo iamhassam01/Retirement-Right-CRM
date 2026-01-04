@@ -43,5 +43,17 @@ export const teamService = {
     // Delete team member
     delete: async (id: string): Promise<void> => {
         await api.delete(`/team/${id}`);
+    },
+
+    // Get current user's availability
+    getMyAvailability: async (): Promise<{ isAvailable: boolean }> => {
+        const response = await api.get<{ isAvailable: boolean }>('/team/my-availability');
+        return response.data;
+    },
+
+    // Set current user's availability (for CRM calendar toggle)
+    setAvailability: async (isAvailable: boolean): Promise<{ success: boolean; isAvailable: boolean }> => {
+        const response = await api.put<{ success: boolean; isAvailable: boolean }>('/team/availability', { isAvailable });
+        return response.data;
     }
 };

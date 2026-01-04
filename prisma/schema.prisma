@@ -12,13 +12,14 @@ datasource db {
 
 // --- Users & Auth ---
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String // Hashed
-  name      String
-  role      Role     @default(ADVISOR)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String // Hashed
+  name        String
+  role        Role     @default(ADVISOR)
+  isAvailable Boolean  @default(true) // For Vapi availability check
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   clients Client[]
   tasks   Task[]

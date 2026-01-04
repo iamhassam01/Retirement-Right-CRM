@@ -148,3 +148,86 @@ export const deleteTeamMember = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Failed to delete team member' });
     }
 };
+
+// --- Availability Endpoints (for Vapi integration) ---
+
+// GET /api/team/availability - Public endpoint for Vapi to check if any advisor is available
+export const getAvailability = async (req: Request, res: Response) => {
+    try {
+        // Find first available advisor
+        const availableAdvisor = await prisma.user.findFirst({
+            where: {
+                isAvailable: true,
+                role: { in: ['ADVISOR', 'ADMIN'] }
+            },
+            select: {
+                id: true,
+                name: true,
+                isAvailable: true
+            }
+        });
+
+        if (availableAdvisor) {
+            res.json({
+                available: true,
+                advisor: availableAdvisor.name,
+                advisorId: availableAdvisor.id
+            });
+        } else {
+            res.json({
+                available: false,
+                message: 'No advisors are currently available'
+            });
+        }
+    } catch (error) {
+        console.error('Error checking availability:', error);
+        res.status(500).json({ error: 'Failed to check availability' });
+    }
+};
+
+// PUT /api/team/availability - Toggle availability for current user (used by CRM calendar toggle)
+export const setAvailability = async (req: Request, res: Response) => {
+    try {
+        const currentUserId = (req as any).user?.userId;
+        const { isAvailable } = req.body;
+
+        if (typeof isAvailable !== 'boolean') {
+            return res.status(400).json({ error: 'isAvailable must be a boolean' });
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: currentUserId },
+            data: { isAvailable },
+            select: {
+                id: true,
+                name: true,
+                isAvailable: true
+            }
+        });
+
+        res.json({
+            success: true,
+            ...updated
+        });
+    } catch (error) {
+        console.error('Error setting availability:', error);
+        res.status(500).json({ error: 'Failed to set availability' });
+    }
+};
+
+// GET /api/team/my-availability - Get current user's availability
+export const getMyAvailability = async (req: Request, res: Response) => {
+    try {
+        const currentUserId = (req as any).user?.userId;
+
+        const user = await prisma.user.findUnique({
+            where: { id: currentUserId },
+            select: { isAvailable: true }
+        });
+
+        res.json({ isAvailable: user?.isAvailable ?? false });
+    } catch (error) {
+        console.error('Error getting my availability:', error);
+        res.status(500).json({ error: 'Failed to get availability' });
+    }
+};
