@@ -84,7 +84,7 @@ app.use('/api/documents', authenticateToken, documentRoutes);
 app.use('/api/reports', authenticateToken, reportsRoutes);
 app.use('/api/templates', authenticateToken, templatesRoutes);
 app.use('/api/workshops', authenticateToken, workshopsRoutes);
-app.use('/api/team', authenticateToken, teamRoutes);
+app.use('/api/team', teamRoutes);  // Auth handled inside router - GET /availability is public
 app.use('/api/settings', authenticateToken, settingsRoutes);
 
 // Serve uploaded files
