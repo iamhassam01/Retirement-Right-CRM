@@ -114,6 +114,35 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
           data: { lastContact: new Date() }
         });
 
+        // 5. Auto-create follow-up task if AI analysis suggests a next action
+        if (analysis?.nextAction && analysis.nextAction.trim()) {
+          try {
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 1); // Default: due tomorrow
+
+            // Handle summary which could be string or array
+            const summaryText = Array.isArray(analysis.summary)
+              ? analysis.summary.join('. ')
+              : (analysis.summary || 'N/A');
+
+            await prisma.task.create({
+              data: {
+                title: `Follow-up: ${analysis.nextAction.substring(0, 100)}`, // Limit title length
+                description: `Auto-generated from Vapi call.\nClient: ${client.name}\nCall Summary: ${summaryText}`,
+                priority: 'High',
+                type: 'Follow-up',
+                status: 'Pending',
+                dueDate: dueDate, // Correct field name per schema
+                clientId: client.id
+              }
+            });
+            console.log('Auto-created follow-up task for client:', client.id);
+          } catch (taskError) {
+            console.error('Failed to create follow-up task:', taskError);
+            // Don't fail the whole webhook if task creation fails
+          }
+        }
+
         console.log('Vapi Call Logged for client:', client.id);
       } else {
         console.warn('Vapi Webhook: Could not match or create client for call');
