@@ -15,6 +15,14 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
   try {
     const { message } = req.body;
 
+    // DEBUG: Log entire incoming message structure
+    console.log('=== VAPI WEBHOOK DEBUG ===');
+    console.log('Message type:', message?.type);
+    console.log('Has recordingUrl at message level:', !!message?.recordingUrl);
+    console.log('recordingUrl value:', message?.recordingUrl);
+    console.log('Has artifact.recordingUrl:', !!message?.artifact?.recordingUrl);
+    console.log('Has call.recordingUrl:', !!message?.call?.recordingUrl);
+
     // Vapi sends different message types: "call-status-update", "end-of-call-report", etc.
     if (message?.type === 'end-of-call-report') {
       const { call, analysis, transcript, recordingUrl, artifact } = message;
@@ -72,6 +80,14 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
 
         // Get recording URL - Vapi sends at message level, not call level
         const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
+
+        // DEBUG: Log recording URL sources
+        console.log('Recording URL Debug:', {
+          fromMessage: recordingUrl,
+          fromArtifact: artifact?.recordingUrl,
+          fromCall: call?.recordingUrl,
+          final: finalRecordingUrl
+        });
 
         // Get duration from message or calculate
         const duration = message.durationSeconds || call?.durationSeconds ||

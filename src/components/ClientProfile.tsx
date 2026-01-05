@@ -127,13 +127,13 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
       <div className={`rounded-xl border transition-all duration-300 overflow-hidden ${isExpanded ? 'bg-white border-teal-200 shadow-md ring-1 ring-teal-100' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
         <div onClick={() => toggleExpand(activity.id)} className="p-4 flex items-center justify-between cursor-pointer">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm">
-              <Bot size={20} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+              <Bot size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="font-bold text-navy-900">AI Voice Agent (Vapi)</h4>
-                <span className="text-xs text-slate-400">• {new Date(activity.date).toLocaleDateString()}</span>
+                <span className="text-xs text-slate-400">• {new Date(activity.date).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
               </div>
               <p className="text-sm text-slate-600 mt-0.5">{activity.description}</p>
             </div>
