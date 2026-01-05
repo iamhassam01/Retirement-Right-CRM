@@ -17,8 +17,22 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
 
     // Vapi sends different message types: "call-status-update", "end-of-call-report", etc.
     if (message?.type === 'end-of-call-report') {
-      const { call, analysis, transcript } = message;
+      const { call, analysis, transcript, recordingUrl, artifact } = message;
       const customerPhone = normalizePhone(call?.customer?.number || '');
+      const callId = call?.id;
+
+      // Check for duplicate - prevent logging same call twice
+      if (callId) {
+        const existingActivity = await prisma.activity.findFirst({
+          where: {
+            description: { contains: callId }
+          }
+        });
+        if (existingActivity) {
+          console.log('Duplicate call detected, skipping:', callId);
+          return res.status(200).json({ received: true, duplicate: true });
+        }
+      }
 
       // 1. Try to find existing client by phone
       let client = await prisma.client.findFirst({
@@ -44,15 +58,24 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
 
       // 3. Create Activity Log linked to the client
       if (client) {
+        // Get messages from transcript or artifact.messages
+        const rawMessages = Array.isArray(transcript) ? transcript : (artifact?.messages || []);
+
         // Normalize transcript format for frontend
-        // Vapi sends: { role: 'user'|'bot'|'assistant', message: string }
-        // Frontend expects: { speaker: 'User'|'AI', text: string }
-        const normalizedTranscript = Array.isArray(transcript)
-          ? transcript.map((msg: any) => ({
+        // FILTER OUT system messages - only keep user and bot/assistant
+        const normalizedTranscript = rawMessages
+          .filter((msg: any) => msg.role === 'user' || msg.role === 'bot' || msg.role === 'assistant')
+          .map((msg: any) => ({
             speaker: msg.role === 'user' ? 'User' : 'AI',
             text: msg.message || msg.content || msg.text || ''
-          }))
-          : null;
+          }));
+
+        // Get recording URL - Vapi sends at message level, not call level
+        const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
+
+        // Get duration from message or calculate
+        const duration = message.durationSeconds || call?.durationSeconds ||
+          (message.durationMs ? Math.round(message.durationMs / 1000) : 0);
 
         await prisma.activity.create({
           data: {
@@ -60,12 +83,12 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
             type: 'call',
             subType: 'ai',
             direction: call?.type === 'outbound' ? 'outbound' : 'inbound',
-            description: analysis?.summary || 'Vapi AI Call',
-            duration: call?.durationSeconds ? `${call.durationSeconds}s` : undefined,
+            description: analysis?.summary || `Vapi AI Call [${callId || 'unknown'}]`,
+            duration: duration ? `${duration}s` : undefined,
             status: 'Completed',
             aiAnalysis: analysis || null,
             transcript: normalizedTranscript,
-            recordingUrl: call?.recordingUrl
+            recordingUrl: finalRecordingUrl
           }
         });
 
