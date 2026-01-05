@@ -44,6 +44,16 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
 
       // 3. Create Activity Log linked to the client
       if (client) {
+        // Normalize transcript format for frontend
+        // Vapi sends: { role: 'user'|'bot'|'assistant', message: string }
+        // Frontend expects: { speaker: 'User'|'AI', text: string }
+        const normalizedTranscript = Array.isArray(transcript)
+          ? transcript.map((msg: any) => ({
+            speaker: msg.role === 'user' ? 'User' : 'AI',
+            text: msg.message || msg.content || msg.text || ''
+          }))
+          : null;
+
         await prisma.activity.create({
           data: {
             clientId: client.id,
@@ -54,7 +64,7 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
             duration: call?.durationSeconds ? `${call.durationSeconds}s` : undefined,
             status: 'Completed',
             aiAnalysis: analysis || null,
-            transcript: transcript || null,
+            transcript: normalizedTranscript,
             recordingUrl: call?.recordingUrl
           }
         });
