@@ -90,6 +90,7 @@ export interface CalendarEvent {
   end: Date;
   type: 'Meeting' | 'Call' | 'Workshop' | 'Personal';
   clientName?: string;
+  advisorName?: string;
 }
 
 export interface DocumentFile {

@@ -10,6 +10,25 @@ interface DashboardProps {
   onSelectClient: (id: string) => void;
 }
 
+// Helper to safely format date
+const safeFormatDate = (date: Date | string | undefined, options: Intl.DateTimeFormatOptions): string => {
+  if (!date) return '--';
+  const d = date instanceof Date ? date : new Date(date);
+  return isNaN(d.getTime()) ? '--' : d.toLocaleString('default', options);
+};
+
+const safeGetDate = (date: Date | string | undefined): number | string => {
+  if (!date) return '--';
+  const d = date instanceof Date ? date : new Date(date);
+  return isNaN(d.getTime()) ? '--' : d.getDate();
+};
+
+const safeFormatTime = (date: Date | string | undefined): string => {
+  if (!date) return '--:--';
+  const d = date instanceof Date ? date : new Date(date);
+  return isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => {
   const [stats, setStats] = useState<KPIData[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -182,12 +201,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
               {events.slice(0, 3).map((event) => (
                 <div key={event.id} className="flex items-center p-4 border border-slate-100 rounded-lg hover:border-teal-100 transition-all cursor-pointer" onClick={() => onNavigate('calendar')}>
                   <div className="h-12 w-12 bg-navy-50 rounded-lg flex flex-col items-center justify-center text-navy-900 mr-4">
-                    <span className="text-[10px] font-bold uppercase">{new Date(event.start).toLocaleString('default', { month: 'short' })}</span>
-                    <span className="text-lg font-bold">{new Date(event.start).getDate()}</span>
+                    <span className="text-[10px] font-bold uppercase">{safeFormatDate(event.start, { month: 'short' })}</span>
+                    <span className="text-lg font-bold">{safeGetDate(event.start)}</span>
                   </div>
                   <div className="flex-1">
                     <h4 className="font-medium text-navy-900">{event.title}</h4>
-                    <p className="text-xs text-slate-500 mt-1">{event.type}</p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {event.type}
+                      {event.clientName && ` • ${event.clientName}`}
+                      {event.advisorName && ` • Advisor: ${event.advisorName}`}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -213,7 +236,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
                   <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-teal-500 shadow-sm"></div>
                   <div>
                     <span className="text-xs font-semibold text-slate-400 block mb-1">
-                      {new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {safeFormatTime(event.start)}
                     </span>
                     <p className="text-sm font-medium text-navy-900">{event.title}</p>
                   </div>

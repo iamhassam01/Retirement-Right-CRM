@@ -217,7 +217,9 @@ const CalendarView: React.FC = () => {
                         'bg-teal-50 border-teal-100 text-teal-700'
                       }`}>
                       <span className="font-semibold mr-1">{event.start.getHours()}:{event.start.getMinutes().toString().padStart(2, '0')}</span>
-                      {event.title} {event.clientName ? `(${event.clientName})` : ''}
+                      {event.title}
+                      {event.clientName && <span className="block opacity-75 text-[10px]">{event.clientName}</span>}
+                      {event.advisorName && <span className="block opacity-75 text-[10px]">Adv: {event.advisorName}</span>}
                     </div>
                   ))}
                 </div>

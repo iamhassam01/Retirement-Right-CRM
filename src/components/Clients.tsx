@@ -32,6 +32,24 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
       c.email?.toLowerCase().includes(searchTerm.toLowerCase())
    );
 
+   // Calculate portfolio health percentage
+   const calculatePortfolioHealth = (): string => {
+      const clientsWithHealth = clients.filter(c => c.portfolioHealth);
+      if (clientsWithHealth.length === 0) return 'N/A';
+
+      const healthScores = clientsWithHealth.map(c => {
+         if (c.portfolioHealth === 'On Track') return 100;
+         if (c.portfolioHealth === 'Review Needed') return 70;
+         return 40; // Rebalance
+      });
+
+      const avg = Math.round(healthScores.reduce((a, b) => a + b, 0) / healthScores.length);
+      return `${avg}%`;
+   };
+
+   // Calculate at-risk clients
+   const atRiskCount = clients.filter(c => c.portfolioHealth === 'Rebalance').length;
+
    if (isLoading) {
       return (
          <div className="flex items-center justify-center h-full">
@@ -68,7 +86,7 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
             <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
                <div>
                   <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">Avg. Portfolio Health</p>
-                  <p className="text-2xl font-bold text-teal-600 mt-1">94%</p>
+                  <p className="text-2xl font-bold text-teal-600 mt-1">{calculatePortfolioHealth()}</p>
                </div>
                <div className="h-10 w-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600">
                   <ShieldCheck size={20} />
@@ -77,7 +95,7 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
             <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-sm flex items-center justify-between">
                <div>
                   <p className="text-xs text-slate-500 uppercase font-bold tracking-wide">At Risk (Churn)</p>
-                  <p className="text-2xl font-bold text-amber-500 mt-1">0</p>
+                  <p className="text-2xl font-bold text-amber-500 mt-1">{atRiskCount}</p>
                </div>
                <div className="h-10 w-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600">
                   <AlertTriangle size={20} />

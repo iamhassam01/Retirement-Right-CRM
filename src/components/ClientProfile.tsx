@@ -25,7 +25,6 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
   // Modal States
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [isCallModalOpen, setIsCallModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -69,9 +68,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
     setExpandedActivity(expandedActivity === id ? null : id);
   };
 
-  const handleStartCall = () => {
-    setIsCallModalOpen(true);
-  };
+
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -222,9 +219,6 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             <button onClick={() => setIsScheduleModalOpen(true)} className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               <Calendar size={16} /> Schedule
             </button>
-            <button onClick={handleStartCall} className="flex items-center gap-2 px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 shadow-md transition-all">
-              <Phone size={16} /> Call (Vapi)
-            </button>
           </div>
         </div>
 
@@ -318,16 +312,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
       <Modal isOpen={isScheduleModalOpen} onClose={() => setIsScheduleModalOpen(false)} title="Schedule Appointment">
         <div className="p-4"><p>Scheduling via Calendar Service...</p></div>
       </Modal>
-      <Modal isOpen={isCallModalOpen} onClose={() => setIsCallModalOpen(false)} title="Calling via Vapi...">
-        <div className="flex flex-col items-center justify-center py-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6">
-            <Phone size={40} />
-          </div>
-          <h3 className="text-xl font-bold text-navy-900">Connected to Voice AI</h3>
-          <p className="text-slate-500 mb-8">Speaking with {clientData.name}...</p>
-          <button onClick={() => setIsCallModalOpen(false)} className="px-6 py-3 bg-rose-500 text-white rounded-xl font-bold shadow-lg">End Call</button>
-        </div>
-      </Modal>
+
       <Modal isOpen={isUploadModalOpen} onClose={() => { setIsUploadModalOpen(false); setSelectedFile(null); setUploadStatus('idle'); }} title="Upload Document">
         <div className="p-4 space-y-4">
           <p className="text-sm text-slate-500">Upload a document for {clientData.name}</p>
