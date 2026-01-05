@@ -188,7 +188,7 @@ export const getAvailability = async (req: Request, res: Response) => {
 // PUT /api/team/availability - Toggle availability for current user (used by CRM calendar toggle)
 export const setAvailability = async (req: Request, res: Response) => {
     try {
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = (req as any).user?.id;
         const { isAvailable } = req.body;
 
         if (typeof isAvailable !== 'boolean') {
@@ -222,7 +222,7 @@ export const setAvailability = async (req: Request, res: Response) => {
 // GET /api/team/my-availability - Get current user's availability
 export const getMyAvailability = async (req: Request, res: Response) => {
     try {
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = (req as any).user?.id;
 
         const user = await prisma.user.findUnique({
             where: { id: currentUserId },

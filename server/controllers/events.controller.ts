@@ -54,7 +54,7 @@ export const getEvents = async (req: Request, res: Response) => {
 export const createEvent = async (req: Request, res: Response) => {
     try {
         const { title, start, end, type, clientId, advisorId } = req.body;
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = (req as any).user?.id;
 
         console.log('Creating event:', { title, start, type, clientId, advisorId, currentUserId });
 
