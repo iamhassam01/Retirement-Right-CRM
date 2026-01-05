@@ -132,6 +132,10 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
 export const handleN8nWebhook = async (req: Request, res: Response) => {
   try {
     const { action, entity, data } = req.body;
+    console.log('=== n8n WEBHOOK DEBUG ===');
+    console.log('Action:', action);
+    console.log('Entity:', entity);
+    console.log('Data:', JSON.stringify(data, null, 2));
 
     // Example: n8n sends { action: "create", entity: "lead", data: { ... } }
     if (action === 'create' && entity === 'lead') {

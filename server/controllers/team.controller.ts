@@ -195,6 +195,8 @@ export const setAvailability = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'isAvailable must be a boolean' });
         }
 
+        console.log(`Setting availability for user ${currentUserId} to ${isAvailable}`);
+
         const updated = await prisma.user.update({
             where: { id: currentUserId },
             data: { isAvailable },
@@ -204,6 +206,8 @@ export const setAvailability = async (req: Request, res: Response) => {
                 isAvailable: true
             }
         });
+
+        console.log('Availability updated successfully:', updated);
 
         res.json({
             success: true,
@@ -224,6 +228,8 @@ export const getMyAvailability = async (req: Request, res: Response) => {
             where: { id: currentUserId },
             select: { isAvailable: true }
         });
+
+        console.log(`Current availability for user ${currentUserId}:`, user?.isAvailable);
 
         res.json({ isAvailable: user?.isAvailable ?? false });
     } catch (error) {

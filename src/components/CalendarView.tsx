@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown } from 'lucide-react';
 import { getCalendarEvents, createEvent } from '../services/db';
 import { teamService } from '../services/team.service';
 import { CalendarEvent } from '../types';
@@ -8,9 +8,12 @@ import Modal from './Modal';
 const CalendarView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [expandedDate, setExpandedDate] = useState<number | null>(null);
 
   // Fetch real data on mount
   useEffect(() => {
@@ -30,20 +33,47 @@ const CalendarView: React.FC = () => {
 
   const fetchEvents = async () => {
     setIsLoading(true);
-    // Fetch a wide range for the demo
-    const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
-    const data = await getCalendarEvents(start, end);
-    setEvents(data);
-    setIsLoading(false);
+    try {
+      // Fetch a wide range for the month
+      const start = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const end = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      const data = await getCalendarEvents(start, end);
+      setEvents(data);
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCreateEvent = async (e: React.FormEvent) => {
+  const handleCreateEvent = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real implementation, you'd gather form data here.
-    // This is a placeholder for the logic.
-    setIsModalOpen(false);
-    await fetchEvents(); // Refresh after create
+    setIsCreating(true);
+    try {
+      const formData = new FormData(e.currentTarget);
+      const title = formData.get('title') as string;
+      const dateStr = formData.get('date') as string;
+      const timeStr = formData.get('time') as string;
+      const type = formData.get('type') as any || 'Meeting';
+
+      const start = new Date(`${dateStr}T${timeStr}`);
+      const end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour duration
+
+      await createEvent({
+        title,
+        start,
+        end,
+        type
+      });
+
+      setIsModalOpen(false);
+      await fetchEvents(); // Refresh after create
+    } catch (error) {
+      console.error('Failed to create event:', error);
+      alert('Failed to create appointment. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -76,13 +106,18 @@ const CalendarView: React.FC = () => {
           {/* Availability Switch */}
           <div
             onClick={async () => {
+              if (isToggling) return;
               const newStatus = !isAvailable;
-              setIsAvailable(newStatus);
+              setIsToggling(true);
               try {
-                await teamService.setAvailability(newStatus);
+                const res = await teamService.setAvailability(newStatus);
+                if (res.success) {
+                  setIsAvailable(newStatus);
+                }
               } catch (error) {
                 console.error('Failed to update availability:', error);
-                setIsAvailable(!newStatus); // Revert on error
+              } finally {
+                setIsToggling(false);
               }
             }}
             className={`
@@ -103,10 +138,13 @@ const CalendarView: React.FC = () => {
                   flex items-center justify-center
                   ${isAvailable ? 'translate-x-4' : 'translate-x-0'}
                 `}>
-                {isAvailable
-                  ? <Check size={10} strokeWidth={3} className="text-emerald-500" />
-                  : <X size={10} strokeWidth={3} className="text-slate-400" />
-                }
+                {isToggling ? (
+                  <RefreshCw size={10} className="animate-spin text-slate-400" />
+                ) : isAvailable ? (
+                  <Check size={10} strokeWidth={3} className="text-emerald-500" />
+                ) : (
+                  <X size={10} strokeWidth={3} className="text-slate-400" />
+                )}
               </div>
             </div>
             <div className="flex flex-col leading-none">
@@ -122,9 +160,9 @@ const CalendarView: React.FC = () => {
           <div className="h-8 w-px bg-slate-200"></div>
 
           <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1 shadow-sm">
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronLeft size={20} /></button>
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronLeft size={20} /></button>
             <button onClick={() => fetchEvents()} className="p-1 hover:bg-slate-100 rounded text-slate-500"><RefreshCw size={16} /></button>
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronRight size={20} /></button>
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronRight size={20} /></button>
           </div>
 
           <button
@@ -162,7 +200,7 @@ const CalendarView: React.FC = () => {
           )}
 
           {dates.map((date, idx) => {
-            const isToday = date.getDate() === new Date().getDate() && date.getMonth() === new Date().getMonth();
+            const isToday = date.getDate() === new Date().getDate() && date.getMonth() === new Date().getMonth() && date.getFullYear() === new Date().getFullYear();
             const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
             const dayEvents = getEventsForDate(date);
 
@@ -175,11 +213,11 @@ const CalendarView: React.FC = () => {
                 <div className="space-y-1">
                   {dayEvents.map(event => (
                     <div key={event.id} className={`p-1.5 rounded border text-xs cursor-pointer truncate ${event.type === 'Meeting' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' :
-                        event.type === 'Call' ? 'bg-amber-50 border-amber-100 text-amber-700' :
-                          'bg-teal-50 border-teal-100 text-teal-700'
+                      event.type === 'Call' ? 'bg-amber-50 border-amber-100 text-amber-700' :
+                        'bg-teal-50 border-teal-100 text-teal-700'
                       }`}>
                       <span className="font-semibold mr-1">{event.start.getHours()}:{event.start.getMinutes().toString().padStart(2, '0')}</span>
-                      {event.title}
+                      {event.title} {event.clientName ? `(${event.clientName})` : ''}
                     </div>
                   ))}
                 </div>
@@ -205,9 +243,19 @@ const CalendarView: React.FC = () => {
               <input name="time" type="time" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
+            <select name="type" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <option value="Meeting">Meeting</option>
+              <option value="Call">Call</option>
+              <option value="Workshop">Workshop</option>
+            </select>
+          </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors">Cancel</button>
-            <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm">Schedule</button>
+            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isCreating}>Cancel</button>
+            <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50" disabled={isCreating}>
+              {isCreating ? 'Scheduling...' : 'Schedule'}
+            </button>
           </div>
         </form>
       </Modal>
