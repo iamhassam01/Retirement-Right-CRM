@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { settingsService, AppSettings } from '../services/settings.service';
 import { profileService, UserProfile, UpdateProfileData } from '../services/profile.service';
+import { useAuth } from '../context/AuthContext';
 import {
   ToggleLeft, ToggleRight, Save, Check, Loader2,
   User, Building, BarChart3, Bell, Link2, Shield,
@@ -8,6 +9,7 @@ import {
 } from 'lucide-react';
 
 const Settings: React.FC = () => {
+  const { updateUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
 
@@ -183,6 +185,7 @@ const Settings: React.FC = () => {
                         try {
                           await profileService.updateAvatar(base64);
                           setProfile(prev => prev ? { ...prev, avatar: base64 } : null);
+                          updateUser({ avatar: base64 });
                         } catch (error) {
                           console.error('Failed to upload avatar:', error);
                           alert('Failed to upload avatar');
