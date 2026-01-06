@@ -23,130 +23,136 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
     console.log('Has artifact.recordingUrl:', !!message?.artifact?.recordingUrl);
     console.log('Has call.recordingUrl:', !!message?.call?.recordingUrl);
 
-    // Vapi sends different message types: "call-status-update", "end-of-call-report", etc.
-    if (message?.type === 'end-of-call-report') {
-      const { call, analysis, transcript, recordingUrl, artifact } = message;
-      const customerPhone = normalizePhone(call?.customer?.number || '');
-      const callId = call?.id;
+    // ONLY process end-of-call-report - ignore all other message types
+    // This prevents 'Call completed' spam from call-status-update, transfer-update, etc.
+    if (message?.type !== 'end-of-call-report') {
+      console.log('Ignoring non-end-of-call-report message type:', message?.type);
+      return res.status(200).json({ received: true, ignored: true, type: message?.type });
+    }
 
-      // Check for duplicate - prevent logging same call twice
-      if (callId) {
-        const existingActivity = await prisma.activity.findFirst({
-          where: {
-            description: { contains: callId }
-          }
-        });
-        if (existingActivity) {
-          console.log('Duplicate call detected, skipping:', callId);
-          return res.status(200).json({ received: true, duplicate: true });
+    // Vapi sends different message types: "call-status-update", "end-of-call-report", etc.
+    // if (message?.type === 'end-of-call-report') { -- removed, now checked above
+    const { call, analysis, transcript, recordingUrl, artifact } = message;
+    const customerPhone = normalizePhone(call?.customer?.number || '');
+    const callId = call?.id;
+
+    // Check for duplicate - prevent logging same call twice
+    if (callId) {
+      const existingActivity = await prisma.activity.findFirst({
+        where: {
+          description: { contains: callId }
+        }
+      });
+      if (existingActivity) {
+        console.log('Duplicate call detected, skipping:', callId);
+        return res.status(200).json({ received: true, duplicate: true });
+      }
+    }
+
+    // 1. Try to find existing client by phone
+    let client = await prisma.client.findFirst({
+      where: {
+        phone: {
+          endsWith: customerPhone
         }
       }
+    });
 
-      // 1. Try to find existing client by phone
-      let client = await prisma.client.findFirst({
-        where: {
-          phone: {
-            endsWith: customerPhone
-          }
+    // 2. If no client found, create a new Lead
+    if (!client && customerPhone) {
+      client = await prisma.client.create({
+        data: {
+          name: `Unknown Caller (${call?.customer?.number || 'N/A'})`,
+          phone: call?.customer?.number,
+          status: 'Lead',
+          pipelineStage: 'New Lead'
+        }
+      });
+      console.log('Created new Lead from unknown caller:', client.id);
+    }
+
+    // 3. Create Activity Log linked to the client
+    if (client) {
+      // Get messages from transcript or artifact.messages
+      const rawMessages = Array.isArray(transcript) ? transcript : (artifact?.messages || []);
+
+      // Normalize transcript format for frontend
+      // FILTER OUT system messages - only keep user and bot/assistant
+      const normalizedTranscript = rawMessages
+        .filter((msg: any) => msg.role === 'user' || msg.role === 'bot' || msg.role === 'assistant')
+        .map((msg: any) => ({
+          speaker: msg.role === 'user' ? 'User' : 'AI',
+          text: msg.message || msg.content || msg.text || ''
+        }));
+
+      // Get recording URL - Vapi sends at message level, not call level
+      const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
+
+      // DEBUG: Log recording URL sources
+      console.log('Recording URL Debug:', {
+        fromMessage: recordingUrl,
+        fromArtifact: artifact?.recordingUrl,
+        fromCall: call?.recordingUrl,
+        final: finalRecordingUrl
+      });
+
+      // Get duration from message or calculate
+      const duration = message.durationSeconds || call?.durationSeconds ||
+        (message.durationMs ? Math.round(message.durationMs / 1000) : 0);
+
+      await prisma.activity.create({
+        data: {
+          clientId: client.id,
+          type: 'call',
+          subType: 'ai',
+          direction: call?.type === 'outbound' ? 'outbound' : 'inbound',
+          description: analysis?.summary || `Vapi AI Call [${callId || 'unknown'}]`,
+          duration: duration ? `${duration}s` : undefined,
+          status: 'Completed',
+          aiAnalysis: analysis || null,
+          transcript: normalizedTranscript,
+          recordingUrl: finalRecordingUrl
         }
       });
 
-      // 2. If no client found, create a new Lead
-      if (!client && customerPhone) {
-        client = await prisma.client.create({
-          data: {
-            name: `Unknown Caller (${call?.customer?.number || 'N/A'})`,
-            phone: call?.customer?.number,
-            status: 'Lead',
-            pipelineStage: 'New Lead'
-          }
-        });
-        console.log('Created new Lead from unknown caller:', client.id);
-      }
+      // 4. Update client's last contact timestamp
+      await prisma.client.update({
+        where: { id: client.id },
+        data: { lastContact: new Date() }
+      });
 
-      // 3. Create Activity Log linked to the client
-      if (client) {
-        // Get messages from transcript or artifact.messages
-        const rawMessages = Array.isArray(transcript) ? transcript : (artifact?.messages || []);
+      // 5. Auto-create follow-up task if AI analysis suggests a next action
+      if (analysis?.nextAction && analysis.nextAction.trim()) {
+        try {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 1); // Default: due tomorrow
 
-        // Normalize transcript format for frontend
-        // FILTER OUT system messages - only keep user and bot/assistant
-        const normalizedTranscript = rawMessages
-          .filter((msg: any) => msg.role === 'user' || msg.role === 'bot' || msg.role === 'assistant')
-          .map((msg: any) => ({
-            speaker: msg.role === 'user' ? 'User' : 'AI',
-            text: msg.message || msg.content || msg.text || ''
-          }));
+          // Handle summary which could be string or array
+          const summaryText = Array.isArray(analysis.summary)
+            ? analysis.summary.join('. ')
+            : (analysis.summary || 'N/A');
 
-        // Get recording URL - Vapi sends at message level, not call level
-        const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
-
-        // DEBUG: Log recording URL sources
-        console.log('Recording URL Debug:', {
-          fromMessage: recordingUrl,
-          fromArtifact: artifact?.recordingUrl,
-          fromCall: call?.recordingUrl,
-          final: finalRecordingUrl
-        });
-
-        // Get duration from message or calculate
-        const duration = message.durationSeconds || call?.durationSeconds ||
-          (message.durationMs ? Math.round(message.durationMs / 1000) : 0);
-
-        await prisma.activity.create({
-          data: {
-            clientId: client.id,
-            type: 'call',
-            subType: 'ai',
-            direction: call?.type === 'outbound' ? 'outbound' : 'inbound',
-            description: analysis?.summary || `Vapi AI Call [${callId || 'unknown'}]`,
-            duration: duration ? `${duration}s` : undefined,
-            status: 'Completed',
-            aiAnalysis: analysis || null,
-            transcript: normalizedTranscript,
-            recordingUrl: finalRecordingUrl
-          }
-        });
-
-        // 4. Update client's last contact timestamp
-        await prisma.client.update({
-          where: { id: client.id },
-          data: { lastContact: new Date() }
-        });
-
-        // 5. Auto-create follow-up task if AI analysis suggests a next action
-        if (analysis?.nextAction && analysis.nextAction.trim()) {
-          try {
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 1); // Default: due tomorrow
-
-            // Handle summary which could be string or array
-            const summaryText = Array.isArray(analysis.summary)
-              ? analysis.summary.join('. ')
-              : (analysis.summary || 'N/A');
-
-            await prisma.task.create({
-              data: {
-                title: `Follow-up: ${analysis.nextAction.substring(0, 100)}`, // Limit title length
-                description: `Auto-generated from Vapi call.\nClient: ${client.name}\nCall Summary: ${summaryText}`,
-                priority: 'High',
-                type: 'Follow-up',
-                status: 'Pending',
-                dueDate: dueDate, // Correct field name per schema
-                clientId: client.id
-              }
-            });
-            console.log('Auto-created follow-up task for client:', client.id);
-          } catch (taskError) {
-            console.error('Failed to create follow-up task:', taskError);
-            // Don't fail the whole webhook if task creation fails
-          }
+          await prisma.task.create({
+            data: {
+              title: `Follow-up: ${analysis.nextAction.substring(0, 100)}`, // Limit title length
+              description: `Auto-generated from Vapi call.\nClient: ${client.name}\nCall Summary: ${summaryText}`,
+              priority: 'High',
+              type: 'Follow-up',
+              status: 'Pending',
+              dueDate: dueDate, // Correct field name per schema
+              clientId: client.id
+            }
+          });
+          console.log('Auto-created follow-up task for client:', client.id);
+        } catch (taskError) {
+          console.error('Failed to create follow-up task:', taskError);
+          // Don't fail the whole webhook if task creation fails
         }
-
-        console.log('Vapi Call Logged for client:', client.id);
-      } else {
-        console.warn('Vapi Webhook: Could not match or create client for call');
       }
+
+      console.log('Vapi Call Logged for client:', client.id);
+    } else {
+      console.warn('Vapi Webhook: Could not match or create client for call');
     }
 
     res.status(200).json({ received: true });

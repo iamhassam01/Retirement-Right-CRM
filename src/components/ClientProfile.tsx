@@ -196,7 +196,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
         <div className="flex justify-between items-start">
           <div className="flex gap-6 items-center">
-            <img src={clientData.imageUrl || 'https://via.placeholder.com/100'} className="w-20 h-20 rounded-full border-4 border-slate-50 shadow-md" alt={clientData.name} />
+            <div className="w-20 h-20 rounded-full border-4 border-slate-50 shadow-md bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-2xl">
+              {clientData.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+            </div>
             <div>
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl font-bold text-navy-900">{clientData.name}</h1>
