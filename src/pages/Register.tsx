@@ -109,6 +109,7 @@ const Register: React.FC = () => {
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <input
                                 type="tel"
+                                required
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all"

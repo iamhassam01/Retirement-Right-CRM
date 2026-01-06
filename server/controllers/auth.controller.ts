@@ -30,6 +30,20 @@ export const register = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'User already exists' });
         }
 
+        if (phone) {
+            const existingPhone = await prisma.user.findFirst({ where: { phone } });
+            if (existingPhone) {
+                return res.status(400).json({ error: 'Phone number already registered' });
+            }
+        }
+
+        if (phone) {
+            const existingPhone = await prisma.user.findFirst({ where: { phone } });
+            if (existingPhone) {
+                return res.status(400).json({ error: 'Phone number already registered' });
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const user = await prisma.user.create({
@@ -45,7 +59,7 @@ export const register = async (req: Request, res: Response) => {
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '7d' }
         );
 
         res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
@@ -75,7 +89,7 @@ export const login = async (req: Request, res: Response) => {
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: '7d' }
         );
 
         res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
@@ -85,5 +99,25 @@ export const login = async (req: Request, res: Response) => {
         }
         console.error('Login error:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+export const refreshToken = async (req: Request, res: Response) => {
+    try {
+        const { token } = req.body;
+        if (!token) return res.status(401).json({ error: 'Token required' });
+
+        const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as any;
+
+        // Issue new token
+        const newToken = jwt.sign(
+            { id: decoded.id, email: decoded.email, role: decoded.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.json({ token: newToken });
+    } catch (error) {
+        res.status(401).json({ error: 'Invalid token' });
     }
 };

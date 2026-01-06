@@ -75,6 +75,12 @@ export const updateClient = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = req.body;
+
+        // Auto-update pipeline stage if status becomes Active
+        if (updates.status === 'Active' || updates.status === 'Client') {
+            updates.pipelineStage = 'Client Onboarded';
+        }
+
         const client = await prisma.client.update({
             where: { id },
             data: updates
