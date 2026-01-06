@@ -153,8 +153,8 @@ const DashboardLayout: React.FC = () => {
                     const endDate = new Date(startDate.getTime() + 3600000); // +1 hour
                     await eventService.create({
                         title: formData.title,
-                        startTime: startDate.toISOString(),
-                        endTime: endDate.toISOString(),
+                        start: startDate,
+                        end: endDate,
                         type: 'Meeting'
                     });
                 }
@@ -328,9 +328,6 @@ const DashboardLayout: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-3 mr-2">
-                            <span className="text-sm font-medium text-navy-900">{user?.name}</span>
-                        </div>
                         <div className="relative" ref={notifRef}>
                             <button
                                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}

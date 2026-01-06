@@ -177,6 +177,23 @@ const CalendarView: React.FC = () => {
           >
             + New Appointment
           </button>
+          <button
+            onClick={async () => {
+              setIsAppointmentsModalOpen(true);
+              setIsLoadingUpcoming(true);
+              try {
+                const upcoming = await eventService.getUpcoming();
+                setUpcomingEvents(upcoming);
+              } catch (error) {
+                console.error('Failed to fetch upcoming appointments:', error);
+              } finally {
+                setIsLoadingUpcoming(false);
+              }
+            }}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <List size={16} /> View Appointments
+          </button>
         </div>
       </div>
 
@@ -266,6 +283,65 @@ const CalendarView: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* View Appointments Modal */}
+      <Modal isOpen={isAppointmentsModalOpen} onClose={() => { setIsAppointmentsModalOpen(false); }} title="Upcoming Appointments">
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {isLoadingUpcoming ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin text-teal-600" size={24} />
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              <p>No upcoming appointments</p>
+            </div>
+          ) : (
+            upcomingEvents.map(event => (
+              <div key={event.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 flex justify-between items-start">
+                <div className="flex-1">
+                  <h4 className="font-medium text-navy-900">{event.title}</h4>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {event.start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })} at {event.start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  {event.clientName && (
+                    <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                      <span className="font-medium">Client:</span> {event.clientName}
+                    </p>
+                  )}
+                  {event.advisorName && (
+                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <span className="font-medium">Advisor:</span> {event.advisorName}
+                    </p>
+                  )}
+                  <span className={`inline-block mt-2 px-2 py-0.5 text-xs rounded-full ${event.type === 'Meeting' ? 'bg-indigo-100 text-indigo-700' : event.type === 'Call' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'}`}>
+                    {event.type}
+                  </span>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (confirm('Delete this appointment?')) {
+                      setIsDeleting(event.id);
+                      try {
+                        await eventService.delete(event.id);
+                        setUpcomingEvents(prev => prev.filter(e => e.id !== event.id));
+                        fetchEvents();
+                      } catch (error) {
+                        alert('Failed to delete');
+                      } finally {
+                        setIsDeleting(null);
+                      }
+                    }
+                  }}
+                  disabled={isDeleting === event.id}
+                  className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting === event.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </Modal>
     </div>
   );

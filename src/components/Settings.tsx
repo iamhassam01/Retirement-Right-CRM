@@ -158,15 +158,40 @@ const Settings: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Avatar */}
             <div className="md:col-span-2 flex items-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-navy-800 flex items-center justify-center text-white text-2xl font-bold">
-                {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-500 to-navy-800 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                {profile?.avatar ? (
+                  <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  profile?.name?.charAt(0)?.toUpperCase() || 'U'
+                )}
               </div>
               <div>
                 <p className="font-medium text-navy-900">{profile?.name}</p>
                 <p className="text-sm text-slate-500">{profile?.role}</p>
-                <button className="mt-2 text-xs text-teal-600 hover:text-teal-700 flex items-center gap-1">
+                <label className="mt-2 text-xs text-teal-600 hover:text-teal-700 flex items-center gap-1 cursor-pointer">
                   <Camera size={12} /> Change photo
-                </button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onloadend = async () => {
+                        const base64 = reader.result as string;
+                        try {
+                          await profileService.updateAvatar(base64);
+                          setProfile(prev => prev ? { ...prev, avatar: base64 } : null);
+                        } catch (error) {
+                          console.error('Failed to upload avatar:', error);
+                          alert('Failed to upload avatar');
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
               </div>
             </div>
 
