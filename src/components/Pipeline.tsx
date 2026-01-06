@@ -53,7 +53,12 @@ const Pipeline: React.FC = () => {
 
       // Update on server
       try {
-        await clientService.update(clientId, { pipelineStage: stage });
+        // Set status to Active when moving to Client Onboarded
+        const updates: any = { pipelineStage: stage };
+        if (stage === PipelineStage.ClientOnboarded) {
+          updates.status = 'Active';
+        }
+        await clientService.update(clientId, updates);
       } catch (error) {
         console.error('Failed to update client stage:', error);
       }
@@ -216,8 +221,8 @@ const Pipeline: React.FC = () => {
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${client.riskProfile === 'Aggressive' ? 'bg-rose-50 text-rose-600' :
-                          client.riskProfile === 'Conservative' ? 'bg-blue-50 text-blue-600' :
-                            'bg-teal-50 text-teal-600'
+                        client.riskProfile === 'Conservative' ? 'bg-blue-50 text-blue-600' :
+                          'bg-teal-50 text-teal-600'
                         }`}>
                         {client.riskProfile || 'N/A'}
                       </span>
