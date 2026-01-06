@@ -81,6 +81,7 @@ export interface Task {
   type: 'Follow-up' | 'Prep' | 'Call';
   priority: 'High' | 'Medium' | 'Low';
   clientName: string;
+  clientId?: string;
 }
 
 export interface CalendarEvent {

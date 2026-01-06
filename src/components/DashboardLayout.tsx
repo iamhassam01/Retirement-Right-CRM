@@ -370,14 +370,14 @@ const DashboardLayout: React.FC = () => {
                         name: formData.name,
                         email: formData.email,
                         phone: formData.phone,
-                        status: formData.clientStatus
+                        status: formData.clientStatus as 'Lead' | 'Prospect'
                     });
                 } else if (quickAddType === 'task') {
                     await taskService.create({
                         title: formData.title,
                         due: formData.due ? new Date(formData.due).toISOString() : undefined,
-                        priority: formData.priority,
-                        type: formData.taskType,
+                        priority: formData.priority as 'High' | 'Medium' | 'Low',
+                        type: formData.taskType as 'Follow-up' | 'Call' | 'Prep',
                         clientId: formData.taskClientId || undefined
                     });
                 } else if (quickAddType === 'event') {
