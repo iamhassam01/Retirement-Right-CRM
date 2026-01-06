@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, Chevron
 import { getCalendarEvents, createEvent } from '../services/db';
 import { teamService } from '../services/team.service';
 import { eventService } from '../services/event.service';
-import { CalendarEvent } from '../types';
+import { clientService } from '../services/client.service';
+import { CalendarEvent, Client } from '../types';
 import Modal from './Modal';
 
 const CalendarView: React.FC = () => {
@@ -20,12 +21,28 @@ const CalendarView: React.FC = () => {
   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [advisors, setAdvisors] = useState<{ id: string, name: string }[]>([]);
 
   // Fetch real data on mount
   useEffect(() => {
     fetchEvents();
     fetchAvailability();
+    fetchClientsAndAdvisors();
   }, [currentMonth]);
+
+  const fetchClientsAndAdvisors = async () => {
+    try {
+      const [clientsData, advisorsData] = await Promise.all([
+        clientService.getAll(),
+        teamService.getAll()
+      ]);
+      setClients(clientsData);
+      setAdvisors(advisorsData.map((a: any) => ({ id: a.id, name: a.name })));
+    } catch (error) {
+      console.error('Failed to fetch clients/advisors:', error);
+    }
+  };
 
   // Fetch availability status from backend
   const fetchAvailability = async () => {
@@ -61,6 +78,8 @@ const CalendarView: React.FC = () => {
       const dateStr = formData.get('date') as string;
       const timeStr = formData.get('time') as string;
       const type = formData.get('type') as any || 'Meeting';
+      const clientId = formData.get('clientId') as string || undefined;
+      const advisorId = formData.get('advisorId') as string || undefined;
 
       const start = new Date(`${dateStr}T${timeStr}`);
       const end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour duration
@@ -69,7 +88,9 @@ const CalendarView: React.FC = () => {
         title,
         start,
         end,
-        type
+        type,
+        clientId: clientId || undefined,
+        advisorId: advisorId || undefined
       });
 
       setIsModalOpen(false);
@@ -275,6 +296,22 @@ const CalendarView: React.FC = () => {
               <option value="Call">Call</option>
               <option value="Workshop">Workshop</option>
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
+              <select name="clientId" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="">Select Client...</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Advisor</label>
+              <select name="advisorId" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="">Select Advisor...</option>
+                {advisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
           </div>
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isCreating}>Cancel</button>

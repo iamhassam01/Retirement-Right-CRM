@@ -23,7 +23,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         const appointmentsToday = await prisma.event.count({
             where: {
                 startTime: { gte: todayStart, lte: todayEnd },
-                type: 'Meeting' // Assuming 'Meeting' is the type for appointments
+                type: { in: ['Meeting', 'Call'] } // Both are appointments, not workshops
             }
         });
 

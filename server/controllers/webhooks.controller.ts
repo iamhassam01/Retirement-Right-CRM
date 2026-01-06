@@ -194,16 +194,26 @@ export const handleN8nWebhook = async (req: Request, res: Response) => {
       return res.json({ success: true, client: updatedClient });
     }
 
-    // Example: Create Event (Appointment)
+    // Example: Create Event (Appointment) - Auto-assign advisor if not provided
     if (action === 'create' && entity === 'event') {
+      // If no advisorId provided, find the first available advisor
+      let advisorId = data.advisorId;
+      if (!advisorId) {
+        const availableAdvisor = await prisma.user.findFirst({
+          where: { isAvailable: true },
+          select: { id: true }
+        });
+        advisorId = availableAdvisor?.id;
+      }
+
       const newEvent = await prisma.event.create({
         data: {
           title: data.title,
           startTime: new Date(data.startTime),
           endTime: new Date(data.endTime),
           type: data.type || 'Meeting',
-          clientId: data.clientId,
-          advisorId: data.advisorId
+          clientId: data.clientId || null,
+          advisorId: advisorId || null
         }
       });
       return res.json({ success: true, id: newEvent.id });

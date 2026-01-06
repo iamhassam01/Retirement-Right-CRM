@@ -33,7 +33,7 @@ const safeFormatTime = (date: Date | string | undefined): string => {
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => {
   const [stats, setStats] = useState<KPIData[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [appointments, setAppointments] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pipelineStats, setPipelineStats] = useState({ leads: 0, qualified: 0, proposal: 0, onboarding: 0, active: 0 });
 
@@ -47,7 +47,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         ]);
         setStats(statsData);
         setTasks(tasksData);
-        setEvents(eventsData);
+        // Filter: Appointments are Meeting/Call, Workshops are separate
+        setAppointments(eventsData.filter((e: CalendarEvent) => e.type !== 'Workshop'));
 
         // Fetch pipeline stats from clients
         try {
@@ -201,7 +202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
           {/* Upcoming Workshops/Events */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="font-semibold text-navy-900">Upcoming Events</h3>
+              <h3 className="font-semibold text-navy-900">Upcoming Appointments</h3>
               <button
                 onClick={() => onNavigate('calendar')}
                 className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline"
@@ -210,7 +211,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
               </button>
             </div>
             <div className="p-6 grid gap-4">
-              {events.slice(0, 3).map((event) => (
+              {appointments.slice(0, 3).map((event) => (
                 <div key={event.id} className="flex items-center p-4 border border-slate-100 rounded-lg hover:border-teal-100 transition-all cursor-pointer" onClick={() => onNavigate('calendar')}>
                   <div className="h-12 w-12 bg-navy-50 rounded-lg flex flex-col items-center justify-center text-navy-900 mr-4">
                     <span className="text-[10px] font-bold uppercase">{safeFormatDate(event.start, { month: 'short' })}</span>
@@ -226,8 +227,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
                   </div>
                 </div>
               ))}
-              {events.length === 0 && (
-                <p className="text-center text-slate-400 text-sm">No upcoming events.</p>
+              {appointments.length === 0 && (
+                <p className="text-center text-slate-400 text-sm">No upcoming appointments.</p>
               )}
             </div>
           </div>
@@ -243,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
               <CalIcon size={18} /> Schedule
             </h3>
             <div className="space-y-4">
-              {events.slice(0, 3).map(event => (
+              {appointments.slice(0, 3).map(event => (
                 <div key={event.id} className="flex gap-4 items-start relative pb-6 border-l-2 border-slate-100 pl-4 last:pb-0 last:border-0">
                   <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-teal-500 shadow-sm"></div>
                   <div>

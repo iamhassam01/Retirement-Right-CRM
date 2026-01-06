@@ -39,10 +39,10 @@ export const getCalendarEvents = async (startDate: Date, endDate: Date): Promise
   }
 };
 
-export const createEvent = async (event: Partial<CalendarEvent>, clientId?: string) => {
+export const createEvent = async (event: Partial<CalendarEvent> & { clientId?: string; advisorId?: string }) => {
   return await fetchApi('/events', {
     method: 'POST',
-    body: JSON.stringify({ ...event, clientId }),
+    body: JSON.stringify(event),
   });
 };
 
