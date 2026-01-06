@@ -51,13 +51,25 @@ export const eventService = {
         });
     },
 
-    create: async (data: { title: string; start: Date; end: Date; type?: string; clientId?: string }): Promise<CalendarEvent> => {
+    create: async (data: {
+        title: string;
+        start: Date;
+        end: Date;
+        type?: string;
+        clientId?: string;
+        advisorId?: string;
+        location?: string;
+        capacity?: number;
+    }): Promise<CalendarEvent> => {
         const payload = {
             title: data.title,
             start: data.start.toISOString(),
             end: data.end.toISOString(),
             type: data.type || 'Meeting',
-            clientId: data.clientId
+            clientId: data.clientId,
+            advisorId: data.advisorId,
+            location: data.location,
+            capacity: data.capacity
         };
         const response = await api.post<EventResponse>('/events', payload);
         const startDate = safeParseDate(response.data.start || response.data.startTime);

@@ -36,6 +36,7 @@ export const getEvents = async (req: Request, res: Response) => {
             end: e.endTime,
             type: e.type,
             status: e.status,
+            createdAt: e.createdAt, // For Activity Log timestamps
             clientName: e.client?.name,
             advisorName: e.advisor?.name,
             extendedProps: {

@@ -57,7 +57,7 @@ const ActivityLog: React.FC = () => {
                     type: 'appointment',
                     title: event.title || 'Appointment',
                     description: `${event.type || 'Event'} scheduled`,
-                    timestamp: event.start || event.startTime || new Date().toISOString(),
+                    timestamp: event.createdAt || new Date().toISOString(), // Use createdAt for "X mins ago"
                     clientName: event.clientName
                 });
             });
@@ -167,8 +167,8 @@ const ActivityLog: React.FC = () => {
                             key={option.value}
                             onClick={() => setFilter(option.value)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === option.value
-                                    ? 'bg-teal-500 text-white'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                ? 'bg-teal-500 text-white'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                 }`}
                         >
                             {option.label}

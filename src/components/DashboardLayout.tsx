@@ -31,7 +31,9 @@ const DashboardLayout: React.FC = () => {
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
     const [isQuickAddOpen, setQuickAddOpen] = useState(false);
-    const [quickAddType, setQuickAddType] = useState<'client' | 'task' | 'event'>('client');
+    const [quickAddType, setQuickAddType] = useState<'client' | 'task' | 'event' | 'appointment'>('client');
+    const [quickAddClients, setQuickAddClients] = useState<Client[]>([]);
+    const [quickAddAdvisors, setQuickAddAdvisors] = useState<{ id: string, name: string }[]>([]);
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loadingNotifications, setLoadingNotifications] = useState(false);
@@ -95,6 +97,25 @@ const DashboardLayout: React.FC = () => {
         const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, []);
+
+    // Fetch clients and advisors when Quick Add opens
+    useEffect(() => {
+        if (isQuickAddOpen) {
+            const fetchData = async () => {
+                try {
+                    const [clients, advisors] = await Promise.all([
+                        clientService.getAll(),
+                        import('../services/team.service').then(m => m.teamService.getAll())
+                    ]);
+                    setQuickAddClients(clients);
+                    setQuickAddAdvisors(advisors.map((a: any) => ({ id: a.id, name: a.name })));
+                } catch (e) {
+                    console.error('Failed to fetch data for Quick Add:', e);
+                }
+            };
+            fetchData();
+        }
+    }, [isQuickAddOpen]);
 
     // Search handler with debounce - searches clients, events, and workshops
     const handleSearch = (query: string) => {
@@ -319,13 +340,26 @@ const DashboardLayout: React.FC = () => {
     const QuickAddForm = () => {
         const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
         const [formData, setFormData] = useState({
+            // Client fields
             name: '',
             email: '',
             phone: '',
+            clientStatus: 'Lead',
+            // Task fields
             title: '',
             due: '',
+            priority: 'Medium',
+            taskType: 'Follow-up',
+            taskClientId: '',
+            // Event/Workshop fields
             date: '',
-            time: ''
+            time: '',
+            location: '',
+            capacity: '',
+            // Appointment fields
+            apptType: 'Meeting',
+            clientId: '',
+            advisorId: ''
         });
 
         const handleSubmit = async () => {
@@ -336,29 +370,49 @@ const DashboardLayout: React.FC = () => {
                         name: formData.name,
                         email: formData.email,
                         phone: formData.phone,
-                        status: 'Lead'
+                        status: formData.clientStatus
                     });
                 } else if (quickAddType === 'task') {
                     await taskService.create({
                         title: formData.title,
                         due: formData.due ? new Date(formData.due).toISOString() : undefined,
-                        priority: 'Medium'
+                        priority: formData.priority,
+                        type: formData.taskType,
+                        clientId: formData.taskClientId || undefined
                     });
                 } else if (quickAddType === 'event') {
                     const startDate = new Date(`${formData.date}T${formData.time || '09:00'}`);
-                    const endDate = new Date(startDate.getTime() + 3600000); // +1 hour
+                    const endDate = new Date(startDate.getTime() + 3600000);
                     await eventService.create({
                         title: formData.title,
                         start: startDate,
                         end: endDate,
-                        type: 'Meeting'
+                        type: 'Workshop',
+                        location: formData.location || undefined,
+                        capacity: formData.capacity ? parseInt(formData.capacity) : undefined
+                    });
+                } else if (quickAddType === 'appointment') {
+                    const startDate = new Date(`${formData.date}T${formData.time || '09:00'}`);
+                    const endDate = new Date(startDate.getTime() + 3600000);
+                    await eventService.create({
+                        title: formData.title,
+                        start: startDate,
+                        end: endDate,
+                        type: formData.apptType,
+                        clientId: formData.clientId || undefined,
+                        advisorId: formData.advisorId || undefined
                     });
                 }
                 setStatus('success');
                 setTimeout(() => {
                     setQuickAddOpen(false);
                     setStatus('idle');
-                    setFormData({ name: '', email: '', phone: '', title: '', due: '', date: '', time: '' });
+                    setFormData({
+                        name: '', email: '', phone: '', clientStatus: 'Lead',
+                        title: '', due: '', priority: 'Medium', taskType: 'Follow-up', taskClientId: '',
+                        date: '', time: '', location: '', capacity: '',
+                        apptType: 'Meeting', clientId: '', advisorId: ''
+                    });
                 }, 1000);
             } catch (error) {
                 console.error('Failed to create:', error);
@@ -380,12 +434,12 @@ const DashboardLayout: React.FC = () => {
 
         return (
             <div className="space-y-4">
-                <div className="flex bg-slate-100 p-1 rounded-lg mb-6">
-                    {(['client', 'task', 'event'] as const).map(type => (
+                <div className="grid grid-cols-4 bg-slate-100 p-1 rounded-lg mb-6 gap-1">
+                    {(['client', 'task', 'event', 'appointment'] as const).map(type => (
                         <button
                             key={type}
                             onClick={() => setQuickAddType(type)}
-                            className={`flex-1 text-sm font-medium py-1.5 rounded-md capitalize ${quickAddType === type ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800'
+                            className={`text-xs sm:text-sm font-medium py-1.5 rounded-md capitalize ${quickAddType === type ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800'
                                 }`}
                         >
                             {type}
@@ -396,7 +450,7 @@ const DashboardLayout: React.FC = () => {
                 {quickAddType === 'client' && (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Full Name</label>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Full Name *</label>
                             <input
                                 type="text"
                                 value={formData.name}
@@ -405,25 +459,38 @@ const DashboardLayout: React.FC = () => {
                                 placeholder="e.g. Jonathan Doe"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Email</label>
-                            <input
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                placeholder="jonathan@example.com"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Email</label>
+                                <input
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    placeholder="email@example.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Phone</label>
+                                <input
+                                    type="tel"
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    placeholder="(555) 123-4567"
+                                />
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Phone</label>
-                            <input
-                                type="tel"
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Status</label>
+                            <select
+                                value={formData.clientStatus}
+                                onChange={(e) => setFormData({ ...formData, clientStatus: e.target.value })}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                placeholder="(555) 123-4567"
-                            />
+                            >
+                                <option value="Lead">Lead</option>
+                                <option value="Prospect">Prospect</option>
+                            </select>
                         </div>
                     </>
                 )}
@@ -431,23 +498,62 @@ const DashboardLayout: React.FC = () => {
                 {quickAddType === 'task' && (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Task Title</label>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Task Title *</label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                placeholder="e.g. Call regarding trust fund"
+                                placeholder="e.g. Follow up on retirement plan"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Due Date</label>
-                            <input
-                                type="date"
-                                value={formData.due}
-                                onChange={(e) => setFormData({ ...formData, due: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Due Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.due}
+                                    onChange={(e) => setFormData({ ...formData, due: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Priority</label>
+                                <select
+                                    value={formData.priority}
+                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option value="High">High</option>
+                                    <option value="Medium">Medium</option>
+                                    <option value="Low">Low</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
+                                <select
+                                    value={formData.taskType}
+                                    onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option value="Follow-up">Follow-up</option>
+                                    <option value="Call">Call</option>
+                                    <option value="Prep">Prep</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
+                                <select
+                                    value={formData.taskClientId}
+                                    onChange={(e) => setFormData({ ...formData, taskClientId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option value="">Select Client...</option>
+                                    {quickAddClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
                         </div>
                     </>
                 )}
@@ -455,18 +561,18 @@ const DashboardLayout: React.FC = () => {
                 {quickAddType === 'event' && (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-navy-900 mb-1">Event Title</label>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Workshop Title *</label>
                             <input
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                placeholder="e.g. Q3 Review"
+                                placeholder="e.g. Retirement Planning 101"
                             />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Date *</label>
                                 <input
                                     type="date"
                                     value={formData.date}
@@ -482,6 +588,98 @@ const DashboardLayout: React.FC = () => {
                                     onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                                 />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Location</label>
+                                <input
+                                    type="text"
+                                    value={formData.location}
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    placeholder="e.g. Main Office"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Capacity</label>
+                                <input
+                                    type="number"
+                                    value={formData.capacity}
+                                    onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                    placeholder="e.g. 25"
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {quickAddType === 'appointment' && (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Appointment Title *</label>
+                            <input
+                                type="text"
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                placeholder="e.g. Portfolio Review"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Date *</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Time</label>
+                                <input
+                                    type="time"
+                                    value={formData.time}
+                                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
+                            <select
+                                value={formData.apptType}
+                                onChange={(e) => setFormData({ ...formData, apptType: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            >
+                                <option value="Meeting">Meeting</option>
+                                <option value="Call">Call</option>
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Client *</label>
+                                <select
+                                    value={formData.clientId}
+                                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option value="">Select Client...</option>
+                                    {quickAddClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Advisor</label>
+                                <select
+                                    value={formData.advisorId}
+                                    onChange={(e) => setFormData({ ...formData, advisorId: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option value="">Select Advisor...</option>
+                                    {quickAddAdvisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                </select>
                             </div>
                         </div>
                     </>
