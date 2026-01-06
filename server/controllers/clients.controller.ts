@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createNotification } from './notifications.controller';
 
 const prisma = new PrismaClient();
 
@@ -42,6 +43,7 @@ export const getClientById = async (req: Request, res: Response) => {
 // --- Create Client (or Lead) ---
 export const createClient = async (req: Request, res: Response) => {
     try {
+        const userId = (req as any).user?.userId;
         const data = req.body;
         const newClient = await prisma.client.create({
             data: {
@@ -50,6 +52,18 @@ export const createClient = async (req: Request, res: Response) => {
                 pipelineStage: data.pipelineStage || 'New Lead'
             }
         });
+
+        // Create notification for new lead/client
+        if (userId) {
+            await createNotification(
+                userId,
+                'new_lead',
+                'New Lead Added',
+                `${newClient.name} has been added to your pipeline.`,
+                `/clients/${newClient.id}`
+            );
+        }
+
         res.json(newClient);
     } catch (error) {
         res.status(500).json({ error: 'Failed to create client' });

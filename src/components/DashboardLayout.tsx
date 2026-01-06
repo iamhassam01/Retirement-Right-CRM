@@ -19,6 +19,7 @@ import { useAuth } from '../context/AuthContext';
 import { clientService } from '../services/client.service';
 import { taskService } from '../services/task.service';
 import { eventService } from '../services/event.service';
+import { notificationService, Notification } from '../services/notification.service';
 import { Client } from '../types';
 
 const DashboardLayout: React.FC = () => {
@@ -30,6 +31,9 @@ const DashboardLayout: React.FC = () => {
     const notifRef = useRef<HTMLDivElement>(null);
     const [isQuickAddOpen, setQuickAddOpen] = useState(false);
     const [quickAddType, setQuickAddType] = useState<'client' | 'task' | 'event'>('client');
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [unreadCount, setUnreadCount] = useState(0);
+    const [loadingNotifications, setLoadingNotifications] = useState(false);
     const { user } = useAuth();
 
     // Load client data when selectedClientId changes
@@ -104,21 +108,116 @@ const DashboardLayout: React.FC = () => {
         }
     };
 
-    const NotificationsDropdown = () => (
-        <div className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="font-bold text-navy-900">Notifications</h3>
-                <button className="text-xs text-teal-600 hover:underline">Mark all read</button>
+    const NotificationsDropdown = () => {
+        const fetchNotifications = async () => {
+            setLoadingNotifications(true);
+            try {
+                const data = await notificationService.getAll();
+                setNotifications(data.notifications);
+                setUnreadCount(data.unreadCount);
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            } finally {
+                setLoadingNotifications(false);
+            }
+        };
+
+        useEffect(() => {
+            if (isNotificationsOpen) {
+                fetchNotifications();
+            }
+        }, [isNotificationsOpen]);
+
+        const handleMarkAllRead = async () => {
+            try {
+                await notificationService.markAllAsRead();
+                setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                setUnreadCount(0);
+            } catch (error) {
+                console.error('Failed to mark all as read:', error);
+            }
+        };
+
+        const handleMarkAsRead = async (id: string) => {
+            try {
+                await notificationService.markAsRead(id);
+                setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            } catch (error) {
+                console.error('Failed to mark as read:', error);
+            }
+        };
+
+        const getNotificationIcon = (type: string) => {
+            switch (type) {
+                case 'new_lead': return <AlertCircle size={16} className="text-blue-500" />;
+                case 'appointment': return <Calendar size={16} className="text-teal-500" />;
+                default: return <Bell size={16} className="text-slate-400" />;
+            }
+        };
+
+        const formatTime = (dateStr: string) => {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 60) return `${diffMins}m ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return date.toLocaleDateString();
+        };
+
+        return (
+            <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+                    <h3 className="font-bold text-navy-900">Notifications</h3>
+                    {notifications.length > 0 && (
+                        <button onClick={handleMarkAllRead} className="text-xs text-teal-600 hover:underline">Mark all read</button>
+                    )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                    {loadingNotifications ? (
+                        <div className="p-8 text-center text-slate-400">
+                            <div className="animate-spin mx-auto w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full"></div>
+                        </div>
+                    ) : notifications.length === 0 ? (
+                        <div className="p-8 text-center text-slate-400">
+                            <CheckCircle2 size={24} className="mx-auto mb-2 text-emerald-500" />
+                            <p className="text-sm">You're all caught up!</p>
+                        </div>
+                    ) : (
+                        notifications.map(notification => (
+                            <div
+                                key={notification.id}
+                                onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                                className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${!notification.isRead ? 'bg-teal-50/30' : ''
+                                    }`}
+                            >
+                                <div className="flex items-start gap-3">
+                                    <div className="mt-1">
+                                        {getNotificationIcon(notification.type)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-sm ${!notification.isRead ? 'font-semibold text-navy-900' : 'text-slate-700'}`}>
+                                            {notification.title}
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-0.5 truncate">{notification.message}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{formatTime(notification.createdAt)}</p>
+                                    </div>
+                                    {!notification.isRead && (
+                                        <div className="w-2 h-2 rounded-full bg-teal-500 mt-2"></div>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+                <div className="p-3 bg-slate-50 text-center border-t border-slate-100">
+                    <button className="text-xs font-medium text-slate-500 hover:text-navy-900">View All Activity</button>
+                </div>
             </div>
-            <div className="p-8 text-center text-slate-400">
-                <CheckCircle2 size={24} className="mx-auto mb-2 text-emerald-500" />
-                <p className="text-sm">You're all caught up!</p>
-            </div>
-            <div className="p-3 bg-slate-50 text-center">
-                <button className="text-xs font-medium text-slate-500 hover:text-navy-900">View All Activity</button>
-            </div>
-        </div>
-    );
+        );
+    };
 
     const QuickAddForm = () => {
         const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -334,6 +433,11 @@ const DashboardLayout: React.FC = () => {
                                 className={`relative text-slate-400 hover:text-navy-900 transition-colors p-2.5 rounded-full hover:bg-slate-50 ${isNotificationsOpen ? 'bg-slate-100 text-navy-900' : ''}`}
                             >
                                 <Bell size={20} />
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
+                                )}
                             </button>
                             {isNotificationsOpen && <NotificationsDropdown />}
                         </div>
