@@ -13,6 +13,7 @@ import Communications from './Communications';
 import Settings from './Settings';
 import Team from './Team';
 import Tasks from './Tasks';
+import ActivityLog from './ActivityLog';
 import Modal from './Modal';
 import { Search, Bell, Plus, X, CheckCircle2, AlertCircle, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -34,6 +35,11 @@ const DashboardLayout: React.FC = () => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loadingNotifications, setLoadingNotifications] = useState(false);
+    const hasFetchedNotifications = useRef(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Client[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const { user } = useAuth();
 
     // Load client data when selectedClientId changes
@@ -66,6 +72,34 @@ const DashboardLayout: React.FC = () => {
         };
     }, [notifRef]);
 
+    // Search handler with debounce
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        if (searchTimeout.current) {
+            clearTimeout(searchTimeout.current);
+        }
+        if (query.length < 2) {
+            setSearchResults([]);
+            setIsSearching(false);
+            return;
+        }
+        setIsSearching(true);
+        searchTimeout.current = setTimeout(async () => {
+            try {
+                const clients = await clientService.getAll();
+                const filtered = clients.filter((c: Client) =>
+                    c.name?.toLowerCase().includes(query.toLowerCase()) ||
+                    c.email?.toLowerCase().includes(query.toLowerCase())
+                ).slice(0, 5);
+                setSearchResults(filtered);
+            } catch (error) {
+                console.error('Search failed:', error);
+            } finally {
+                setIsSearching(false);
+            }
+        }, 300);
+    };
+
     const renderContent = () => {
         if (selectedClient) {
             return <ClientProfile client={selectedClient} onBack={() => setSelectedClientId(null)} />;
@@ -96,6 +130,8 @@ const DashboardLayout: React.FC = () => {
                 return <Settings />;
             case 'team':
                 return <Team />;
+            case 'activitylog':
+                return <ActivityLog />;
             default:
                 return (
                     <div className="flex items-center justify-center h-full text-slate-400">
@@ -110,6 +146,8 @@ const DashboardLayout: React.FC = () => {
 
     const NotificationsDropdown = () => {
         const fetchNotifications = async () => {
+            if (hasFetchedNotifications.current || loadingNotifications) return;
+            hasFetchedNotifications.current = true;
             setLoadingNotifications(true);
             try {
                 const data = await notificationService.getAll();
@@ -117,16 +155,16 @@ const DashboardLayout: React.FC = () => {
                 setUnreadCount(data.unreadCount);
             } catch (error) {
                 console.error('Failed to fetch notifications:', error);
+                hasFetchedNotifications.current = false; // Allow retry on error
             } finally {
                 setLoadingNotifications(false);
             }
         };
 
-        useEffect(() => {
-            if (isNotificationsOpen) {
-                fetchNotifications();
-            }
-        }, [isNotificationsOpen]);
+        // Fetch only once when dropdown opens
+        if (isNotificationsOpen && !hasFetchedNotifications.current) {
+            fetchNotifications();
+        }
 
         const handleMarkAllRead = async () => {
             try {
@@ -213,7 +251,15 @@ const DashboardLayout: React.FC = () => {
                     )}
                 </div>
                 <div className="p-3 bg-slate-50 text-center border-t border-slate-100">
-                    <button className="text-xs font-medium text-slate-500 hover:text-navy-900">View All Activity</button>
+                    <button
+                        onClick={() => {
+                            setIsNotificationsOpen(false);
+                            setCurrentView('activitylog');
+                        }}
+                        className="text-xs font-medium text-slate-500 hover:text-navy-900"
+                    >
+                        View All Activity
+                    </button>
                 </div>
             </div>
         );
@@ -417,13 +463,47 @@ const DashboardLayout: React.FC = () => {
 
             <main className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-20' : 'ml-72'}`}>
                 <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-40 shrink-0">
-                    <div className="flex items-center w-96 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-200 focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent transition-all group shadow-sm">
+                    <div className="flex items-center w-96 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-200 focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent transition-all group shadow-sm relative">
                         <Search size={18} className="text-slate-400 mr-3 group-focus-within:text-teal-600" />
                         <input
                             type="text"
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
                             placeholder="Search clients, documents, or events..."
                             className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-400 text-navy-900"
                         />
+                        {/* Search Results Dropdown */}
+                        {searchQuery.length >= 2 && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                                {isSearching ? (
+                                    <div className="p-4 text-center text-slate-400">
+                                        <div className="animate-spin mx-auto w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full"></div>
+                                    </div>
+                                ) : searchResults.length === 0 ? (
+                                    <div className="p-4 text-center text-slate-400 text-sm">No results found</div>
+                                ) : (
+                                    searchResults.map(client => (
+                                        <button
+                                            key={client.id}
+                                            onClick={() => {
+                                                setSelectedClientId(client.id);
+                                                setSearchQuery('');
+                                                setSearchResults([]);
+                                            }}
+                                            className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                                {client.name?.charAt(0)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-navy-900">{client.name}</p>
+                                                <p className="text-xs text-slate-500">{client.email}</p>
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-6">

@@ -4,6 +4,7 @@ import { dashboardService } from '../services/dashboard.service';
 import { taskService } from '../services/task.service';
 import { eventService } from '../services/event.service';
 import { Clock, CheckCircle2, Calendar as CalIcon, ArrowRight, Loader2, DollarSign, Users, AlertCircle, TrendingUp } from 'lucide-react';
+import { clientService } from '../services/client.service';
 
 interface DashboardProps {
   onNavigate: (view: string) => void;
@@ -34,6 +35,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pipelineStats, setPipelineStats] = useState({ leads: 0, qualified: 0, proposal: 0, onboarding: 0, active: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +48,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         setStats(statsData);
         setTasks(tasksData);
         setEvents(eventsData);
+
+        // Fetch pipeline stats from clients
+        try {
+          const clients = await clientService.getAll();
+          const stats = {
+            leads: clients.filter((c: any) => c.pipelineStage === 'New Lead' || c.pipelineStage === 'Lead').length,
+            qualified: clients.filter((c: any) => c.pipelineStage === 'Qualified').length,
+            proposal: clients.filter((c: any) => c.pipelineStage === 'Proposal').length,
+            onboarding: clients.filter((c: any) => c.pipelineStage === 'Onboarding').length,
+            active: clients.filter((c: any) => c.status === 'Client' || c.pipelineStage === 'Active').length
+          };
+          setPipelineStats(stats);
+        } catch (e) {
+          console.error('Failed to fetch pipeline stats:', e);
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -91,11 +108,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         <div>
           <h2 className="text-2xl font-semibold text-navy-900">Good Morning</h2>
           <p className="text-slate-500 mt-1">Here is your agenda for today.</p>
-        </div>
-        <div className="text-right">
-          <span className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
-            Market Update: S&P 500 +0.4%
-          </span>
         </div>
       </div>
 
@@ -256,13 +268,41 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
             <h3 className="font-semibold mb-2">Pipeline Velocity</h3>
             <p className="text-navy-200 text-sm mb-6">Track your prospects.</p>
 
-            <div className="space-y-3">
-              <div className="flex justify-between text-xs opacity-80">
-                <span>Leads</span>
-                <span>Onboarding</span>
+            <div className="space-y-4">
+              {/* Pipeline Stage Bars */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-navy-200">New Leads</span>
+                  <span className="font-semibold text-teal-400">{pipelineStats.leads}</span>
+                </div>
+                <div className="h-2 bg-navy-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-400 rounded-full transition-all" style={{ width: `${Math.min(100, pipelineStats.leads * 10)}%` }}></div>
+                </div>
               </div>
-              <div className="h-2 bg-navy-700 rounded-full overflow-hidden">
-                <div className="h-full bg-teal-400 w-3/4 rounded-full"></div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-navy-200">Qualified</span>
+                  <span className="font-semibold text-emerald-400">{pipelineStats.qualified}</span>
+                </div>
+                <div className="h-2 bg-navy-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-400 rounded-full transition-all" style={{ width: `${Math.min(100, pipelineStats.qualified * 15)}%` }}></div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-navy-200">Onboarding</span>
+                  <span className="font-semibold text-amber-400">{pipelineStats.onboarding}</span>
+                </div>
+                <div className="h-2 bg-navy-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${Math.min(100, pipelineStats.onboarding * 20)}%` }}></div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-navy-700 flex justify-between text-xs">
+                <span className="text-navy-200">Active Clients</span>
+                <span className="font-bold text-white">{pipelineStats.active}</span>
               </div>
             </div>
 
