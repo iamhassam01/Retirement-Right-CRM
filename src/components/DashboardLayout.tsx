@@ -37,7 +37,11 @@ const DashboardLayout: React.FC = () => {
     const [loadingNotifications, setLoadingNotifications] = useState(false);
     const hasFetchedNotifications = useRef(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<Client[]>([]);
+    const [searchResults, setSearchResults] = useState<{
+        clients: Client[];
+        events: any[];
+        workshops: any[];
+    }>({ clients: [], events: [], workshops: [] });
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const { user } = useAuth();
@@ -72,26 +76,53 @@ const DashboardLayout: React.FC = () => {
         };
     }, [notifRef]);
 
-    // Search handler with debounce
+    // Search handler with debounce - searches clients, events, and workshops
     const handleSearch = (query: string) => {
         setSearchQuery(query);
         if (searchTimeout.current) {
             clearTimeout(searchTimeout.current);
         }
         if (query.length < 2) {
-            setSearchResults([]);
+            setSearchResults({ clients: [], events: [], workshops: [] });
             setIsSearching(false);
             return;
         }
         setIsSearching(true);
         searchTimeout.current = setTimeout(async () => {
             try {
-                const clients = await clientService.getAll();
-                const filtered = clients.filter((c: Client) =>
-                    c.name?.toLowerCase().includes(query.toLowerCase()) ||
-                    c.email?.toLowerCase().includes(query.toLowerCase())
-                ).slice(0, 5);
-                setSearchResults(filtered);
+                const queryLower = query.toLowerCase();
+
+                // Fetch all data sources
+                const [clients, events, workshops] = await Promise.all([
+                    clientService.getAll().catch(() => []),
+                    import('../services/event.service').then(m => m.eventService.getAll()).catch(() => []),
+                    import('../services/workshop.service').then(m => m.workshopService.getAll()).catch(() => [])
+                ]);
+
+                // Filter clients
+                const filteredClients = clients.filter((c: Client) =>
+                    c.name?.toLowerCase().includes(queryLower) ||
+                    c.email?.toLowerCase().includes(queryLower)
+                ).slice(0, 3);
+
+                // Filter events
+                const filteredEvents = events.filter((e: any) =>
+                    e.title?.toLowerCase().includes(queryLower) ||
+                    e.type?.toLowerCase().includes(queryLower) ||
+                    e.clientName?.toLowerCase().includes(queryLower)
+                ).slice(0, 3);
+
+                // Filter workshops
+                const filteredWorkshops = workshops.filter((w: any) =>
+                    w.title?.toLowerCase().includes(queryLower) ||
+                    w.location?.toLowerCase().includes(queryLower)
+                ).slice(0, 3);
+
+                setSearchResults({
+                    clients: filteredClients,
+                    events: filteredEvents,
+                    workshops: filteredWorkshops
+                });
             } catch (error) {
                 console.error('Search failed:', error);
             } finally {
@@ -474,33 +505,93 @@ const DashboardLayout: React.FC = () => {
                         />
                         {/* Search Results Dropdown */}
                         {searchQuery.length >= 2 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50">
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 max-h-80 overflow-y-auto">
                                 {isSearching ? (
                                     <div className="p-4 text-center text-slate-400">
                                         <div className="animate-spin mx-auto w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full"></div>
                                     </div>
-                                ) : searchResults.length === 0 ? (
+                                ) : (searchResults.clients.length === 0 && searchResults.events.length === 0 && searchResults.workshops.length === 0) ? (
                                     <div className="p-4 text-center text-slate-400 text-sm">No results found</div>
                                 ) : (
-                                    searchResults.map(client => (
-                                        <button
-                                            key={client.id}
-                                            onClick={() => {
-                                                setSelectedClientId(client.id);
-                                                setSearchQuery('');
-                                                setSearchResults([]);
-                                            }}
-                                            className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
-                                        >
-                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
-                                                {client.name?.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium text-navy-900">{client.name}</p>
-                                                <p className="text-xs text-slate-500">{client.email}</p>
-                                            </div>
-                                        </button>
-                                    ))
+                                    <>
+                                        {/* Clients Section */}
+                                        {searchResults.clients.length > 0 && (
+                                            <>
+                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Clients</div>
+                                                {searchResults.clients.map(client => (
+                                                    <button
+                                                        key={client.id}
+                                                        onClick={() => {
+                                                            setSelectedClientId(client.id);
+                                                            setSearchQuery('');
+                                                            setSearchResults({ clients: [], events: [], workshops: [] });
+                                                        }}
+                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                                            {client.name?.charAt(0)}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-navy-900">{client.name}</p>
+                                                            <p className="text-xs text-slate-500">{client.email}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* Events Section */}
+                                        {searchResults.events.length > 0 && (
+                                            <>
+                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Events</div>
+                                                {searchResults.events.map((event: any) => (
+                                                    <button
+                                                        key={event.id}
+                                                        onClick={() => {
+                                                            setCurrentView('calendar');
+                                                            setSearchQuery('');
+                                                            setSearchResults({ clients: [], events: [], workshops: [] });
+                                                        }}
+                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                                            <Calendar size={14} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-navy-900">{event.title}</p>
+                                                            <p className="text-xs text-slate-500">{event.type} • {event.clientName || 'No client'}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {/* Workshops Section */}
+                                        {searchResults.workshops.length > 0 && (
+                                            <>
+                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Workshops</div>
+                                                {searchResults.workshops.map((workshop: any) => (
+                                                    <button
+                                                        key={workshop.id}
+                                                        onClick={() => {
+                                                            setCurrentView('workshops');
+                                                            setSearchQuery('');
+                                                            setSearchResults({ clients: [], events: [], workshops: [] });
+                                                        }}
+                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                            <Calendar size={14} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-medium text-navy-900">{workshop.title}</p>
+                                                            <p className="text-xs text-slate-500">{workshop.location || 'No location'}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}

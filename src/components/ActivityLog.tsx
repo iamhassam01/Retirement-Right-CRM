@@ -1,63 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Clock, Users, Calendar, MessageSquare, FileText, Phone, Mail, CheckCircle } from 'lucide-react';
+import { Activity, Clock, Users, Calendar, FileText, Phone, Mail, CheckCircle } from 'lucide-react';
+import { activityService } from '../services/activity.service';
+import { eventService } from '../services/event.service';
+import { clientService } from '../services/client.service';
+import { taskService } from '../services/task.service';
 
 interface ActivityItem {
     id: string;
-    type: 'call' | 'email' | 'meeting' | 'note' | 'task' | 'client_added' | 'appointment';
+    type: 'call' | 'email' | 'meeting' | 'note' | 'task' | 'client_added' | 'appointment' | 'event';
     title: string;
     description: string;
-    user: string;
     timestamp: string;
     clientName?: string;
 }
-
-// Mock data - in production, this would come from an API
-const mockActivities: ActivityItem[] = [
-    {
-        id: '1',
-        type: 'client_added',
-        title: 'New Lead Added',
-        description: 'James Wilson added to pipeline',
-        user: 'System',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        clientName: 'James Wilson'
-    },
-    {
-        id: '2',
-        type: 'appointment',
-        title: 'Appointment Scheduled',
-        description: 'Portfolio Review with Sarah Johnson',
-        user: 'Sarah Johnson',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        clientName: 'Sarah Johnson'
-    },
-    {
-        id: '3',
-        type: 'call',
-        title: 'Call Completed',
-        description: 'Follow-up call with Michael Chen - 15 mins',
-        user: 'Michael Chen',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-        clientName: 'Michael Chen'
-    },
-    {
-        id: '4',
-        type: 'email',
-        title: 'Email Sent',
-        description: 'Retirement planning documents sent',
-        user: 'System',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-        clientName: 'Robert Davis'
-    },
-    {
-        id: '5',
-        type: 'task',
-        title: 'Task Completed',
-        description: 'Quarterly review preparation completed',
-        user: 'Admin',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString()
-    }
-];
 
 const ActivityLog: React.FC = () => {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -65,12 +20,84 @@ const ActivityLog: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate API fetch
-        setTimeout(() => {
-            setActivities(mockActivities);
-            setIsLoading(false);
-        }, 500);
+        fetchAllActivities();
     }, []);
+
+    const fetchAllActivities = async () => {
+        setIsLoading(true);
+        try {
+            // Fetch from multiple sources and combine
+            const [activitiesData, eventsData, clientsData, tasksData] = await Promise.all([
+                activityService.getAll().catch(() => []),
+                eventService.getAll().catch(() => []),
+                clientService.getAll().catch(() => []),
+                taskService.getAll().catch(() => [])
+            ]);
+
+            const combinedActivities: ActivityItem[] = [];
+
+            // Add activities from activity log
+            activitiesData.forEach((activity: any) => {
+                combinedActivities.push({
+                    id: `activity-${activity.id}`,
+                    type: activity.type || 'note',
+                    title: activity.type === 'call' ? 'Call Logged' :
+                        activity.type === 'email' ? 'Email Sent' :
+                            activity.type === 'meeting' ? 'Meeting' : 'Activity',
+                    description: activity.notes || activity.type,
+                    timestamp: activity.date || new Date().toISOString(),
+                    clientName: activity.client?.name
+                });
+            });
+
+            // Add recent events/appointments
+            eventsData.slice(0, 10).forEach((event: any) => {
+                combinedActivities.push({
+                    id: `event-${event.id}`,
+                    type: 'appointment',
+                    title: event.title || 'Appointment',
+                    description: `${event.type || 'Event'} scheduled`,
+                    timestamp: event.start || event.startTime || new Date().toISOString(),
+                    clientName: event.clientName
+                });
+            });
+
+            // Add recent clients
+            clientsData.slice(0, 5).forEach((client: any) => {
+                combinedActivities.push({
+                    id: `client-${client.id}`,
+                    type: 'client_added',
+                    title: 'Client Added',
+                    description: `${client.name} added to ${client.pipelineStage || 'pipeline'}`,
+                    timestamp: client.createdAt || new Date().toISOString(),
+                    clientName: client.name
+                });
+            });
+
+            // Add recent tasks
+            tasksData.slice(0, 5).forEach((task: any) => {
+                combinedActivities.push({
+                    id: `task-${task.id}`,
+                    type: 'task',
+                    title: task.status === 'Completed' ? 'Task Completed' : 'Task Created',
+                    description: task.title,
+                    timestamp: task.createdAt || task.due || new Date().toISOString(),
+                    clientName: task.clientName
+                });
+            });
+
+            // Sort by timestamp descending
+            combinedActivities.sort((a, b) =>
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            );
+
+            setActivities(combinedActivities);
+        } catch (error) {
+            console.error('Failed to fetch activities:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const getActivityIcon = (type: string) => {
         switch (type) {
@@ -86,16 +113,21 @@ const ActivityLog: React.FC = () => {
     };
 
     const formatTime = (dateStr: string) => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 60) return `${diffMins} mins ago`;
-        const diffHours = Math.floor(diffMins / 60);
-        if (diffHours < 24) return `${diffHours} hours ago`;
-        const diffDays = Math.floor(diffHours / 24);
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return date.toLocaleDateString();
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return 'Recently';
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 60) return `${Math.max(1, diffMins)} mins ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        } catch {
+            return 'Recently';
+        }
     };
 
     const filteredActivities = filter === 'all'
@@ -121,7 +153,9 @@ const ActivityLog: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                     <Clock size={16} className="text-slate-400" />
-                    <span className="text-sm text-slate-500">Last updated: Just now</span>
+                    <span className="text-sm text-slate-500">
+                        {activities.length} activities loaded
+                    </span>
                 </div>
             </div>
 

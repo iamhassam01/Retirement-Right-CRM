@@ -57,7 +57,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
             qualified: clients.filter((c: any) => c.pipelineStage === 'Qualified').length,
             proposal: clients.filter((c: any) => c.pipelineStage === 'Proposal').length,
             onboarding: clients.filter((c: any) => c.pipelineStage === 'Onboarding').length,
-            active: clients.filter((c: any) => c.status === 'Client' || c.pipelineStage === 'Active').length
+            active: clients.filter((c: any) => c.status === 'Client' || c.status === 'Active' || c.pipelineStage === 'Active' || c.pipelineStage === 'Client Onboarded').length
           };
           setPipelineStats(stats);
         } catch (e) {
