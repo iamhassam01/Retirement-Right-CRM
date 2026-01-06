@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { createNotification } from './notifications.controller';
 
 const prisma = new PrismaClient();
 
@@ -151,6 +152,17 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
       }
 
       console.log('Vapi Call Logged for client:', client.id);
+
+      // 6. Create notification for the advisor (if client has one)
+      if (client.advisorId) {
+        await createNotification(
+          client.advisorId,
+          'call',
+          'AI Call Completed',
+          `Call with ${client.name} completed. ${analysis?.nextAction || ''}`,
+          `/clients/${client.id}`
+        );
+      }
     } else {
       console.warn('Vapi Webhook: Could not match or create client for call');
     }

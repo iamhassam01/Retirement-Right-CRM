@@ -76,6 +76,26 @@ const DashboardLayout: React.FC = () => {
         };
     }, [notifRef]);
 
+    // Periodic notification polling every 30 seconds + initial fetch
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const data = await notificationService.getAll();
+                setNotifications(data.notifications);
+                setUnreadCount(data.unreadCount);
+            } catch (error) {
+                console.error('Failed to fetch notifications:', error);
+            }
+        };
+
+        // Initial fetch
+        fetchNotifications();
+
+        // Poll every 30 seconds
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, []);
+
     // Search handler with debounce - searches clients, events, and workshops
     const handleSearch = (query: string) => {
         setSearchQuery(query);

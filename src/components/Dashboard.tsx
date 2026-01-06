@@ -34,6 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
   const [stats, setStats] = useState<KPIData[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [appointments, setAppointments] = useState<CalendarEvent[]>([]);
+  const [workshops, setWorkshops] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pipelineStats, setPipelineStats] = useState({ leads: 0, qualified: 0, proposal: 0, onboarding: 0, active: 0 });
 
@@ -49,6 +50,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         setTasks(tasksData);
         // Filter: Appointments are Meeting/Call, Workshops are separate
         setAppointments(eventsData.filter((e: CalendarEvent) => e.type !== 'Workshop'));
+        setWorkshops(eventsData.filter((e: CalendarEvent) => e.type === 'Workshop'));
 
         // Fetch pipeline stats from clients
         try {
@@ -238,29 +240,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         {/* Sidebar Area - 1 Col */}
         <div className="space-y-8">
 
-          {/* Calendar Widget */}
+          {/* Upcoming Workshops Widget */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
             <h3 className="font-semibold text-navy-900 mb-4 flex items-center gap-2">
-              <CalIcon size={18} /> Schedule
+              <CalIcon size={18} /> Upcoming Workshops
             </h3>
             <div className="space-y-4">
-              {appointments.slice(0, 3).map(event => (
-                <div key={event.id} className="flex gap-4 items-start relative pb-6 border-l-2 border-slate-100 pl-4 last:pb-0 last:border-0">
-                  <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-teal-500 shadow-sm"></div>
+              {workshops.length > 0 ? workshops.slice(0, 3).map(wkshp => (
+                <div key={wkshp.id} className="flex gap-4 items-start relative pb-6 border-l-2 border-slate-100 pl-4 last:pb-0 last:border-0">
+                  <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-emerald-500 shadow-sm"></div>
                   <div>
                     <span className="text-xs font-semibold text-slate-400 block mb-1">
-                      {safeFormatTime(event.start)}
+                      {safeFormatDate(wkshp.start, { month: 'short', day: 'numeric' })}
                     </span>
-                    <p className="text-sm font-medium text-navy-900">{event.title}</p>
+                    <p className="text-sm font-medium text-navy-900">{wkshp.title}</p>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-slate-400 text-center">No upcoming workshops</p>
+              )}
             </div>
             <button
-              onClick={() => onNavigate('calendar')}
+              onClick={() => onNavigate('workshops')}
               className="w-full mt-6 py-2 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              View Full Calendar
+              View All Workshops
             </button>
           </div>
 
