@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 // GET /api/profile - Get current user's profile
 export const getProfile = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -38,7 +38,7 @@ export const getProfile = async (req: Request, res: Response) => {
 // PUT /api/profile - Update current user's profile
 export const updateProfile = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { name, phone, avatar, title } = req.body;
 
         // Build update data object with only provided fields
@@ -77,7 +77,7 @@ export const updateProfile = async (req: Request, res: Response) => {
 // PUT /api/profile/password - Change password
 export const changePassword = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { currentPassword, newPassword } = req.body;
 
         if (!currentPassword || !newPassword) {
@@ -123,7 +123,7 @@ export const changePassword = async (req: Request, res: Response) => {
 // PUT /api/profile/avatar - Upload/update avatar
 export const updateAvatar = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { avatarUrl } = req.body;
 
         if (!avatarUrl) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown, List, Trash2, Edit3, Loader2 } from 'lucide-react';
 import { getCalendarEvents, createEvent } from '../services/db';
 import { teamService } from '../services/team.service';
+import { eventService } from '../services/event.service';
 import { CalendarEvent } from '../types';
 import Modal from './Modal';
 
@@ -14,6 +15,11 @@ const CalendarView: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [expandedDate, setExpandedDate] = useState<number | null>(null);
+  const [isAppointmentsModalOpen, setIsAppointmentsModalOpen] = useState(false);
+  const [upcomingEvents, setUpcomingEvents] = useState<CalendarEvent[]>([]);
+  const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Fetch real data on mount
   useEffect(() => {

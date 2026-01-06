@@ -106,7 +106,7 @@ const Team: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto flex-1">
         {members.length > 0 ? (
           <table className="w-full text-left border-collapse">
             <thead className="bg-slate-50">
