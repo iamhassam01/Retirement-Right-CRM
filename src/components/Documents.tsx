@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentService, Document } from '../services/document.service';
-import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2 } from 'lucide-react';
+import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
 import Modal from './Modal';
 
 const Documents: React.FC = () => {
@@ -13,6 +13,9 @@ const Documents: React.FC = () => {
    const [selectedFile, setSelectedFile] = useState<File | null>(null);
    const [uploadCategory, setUploadCategory] = useState('Client');
    const fileInputRef = useRef<HTMLInputElement>(null);
+   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+   const [docToDelete, setDocToDelete] = useState<Document | null>(null);
+   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
 
    const categories = ['All', 'Client', 'Compliance', 'Internal'];
 
@@ -65,15 +68,27 @@ const Documents: React.FC = () => {
       }
    };
 
-   const handleDelete = async (id: string) => {
-      if (!confirm('Are you sure you want to delete this document?')) return;
-
+   const confirmDelete = async () => {
+      if (!docToDelete) return;
       try {
-         await documentService.delete(id);
-         setDocuments(prev => prev.filter(d => d.id !== id));
+         await documentService.delete(docToDelete.id);
+         setDocuments(prev => prev.filter(d => d.id !== docToDelete.id));
       } catch (error) {
          console.error('Delete failed:', error);
+      } finally {
+         setDeleteModalOpen(false);
+         setDocToDelete(null);
       }
+   };
+
+   const openDeleteModal = (doc: Document) => {
+      setDocToDelete(doc);
+      setDeleteModalOpen(true);
+   };
+
+   const isPreviewable = (doc: Document) => {
+      const type = doc.type?.toLowerCase();
+      return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(type || '');
    };
 
    const filteredDocs = documents.filter(doc => {
@@ -161,9 +176,9 @@ const Documents: React.FC = () => {
                                  <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
                                        <div className={`w-8 h-8 rounded flex items-center justify-center ${doc.type === 'pdf' ? 'bg-rose-50 text-rose-600' :
-                                             doc.type === 'xls' || doc.type === 'xlsx' ? 'bg-emerald-50 text-emerald-600' :
-                                                doc.type === 'doc' || doc.type === 'docx' ? 'bg-blue-50 text-blue-600' :
-                                                   'bg-slate-100 text-slate-600'
+                                          doc.type === 'xls' || doc.type === 'xlsx' ? 'bg-emerald-50 text-emerald-600' :
+                                             doc.type === 'doc' || doc.type === 'docx' ? 'bg-blue-50 text-blue-600' :
+                                                'bg-slate-100 text-slate-600'
                                           }`}>
                                           <FileText size={16} />
                                        </div>
@@ -180,15 +195,26 @@ const Documents: React.FC = () => {
                                  </td>
                                  <td className="px-6 py-4 text-sm text-slate-500">{doc.size || '-'}</td>
                                  <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end gap-2">
+                                    <div className="flex items-center justify-end gap-1">
+                                       {isPreviewable(doc) && (
+                                          <button
+                                             onClick={() => setPreviewDoc(doc)}
+                                             title="Preview"
+                                             className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
+                                          >
+                                             <Eye size={16} />
+                                          </button>
+                                       )}
                                        <button
                                           onClick={() => handleDownload(doc.id)}
+                                          title="Download"
                                           className="p-1.5 text-slate-400 hover:text-navy-900 hover:bg-slate-200 rounded transition-colors"
                                        >
                                           <Download size={16} />
                                        </button>
                                        <button
-                                          onClick={() => handleDelete(doc.id)}
+                                          onClick={() => openDeleteModal(doc)}
+                                          title="Delete"
                                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
                                        >
                                           <Trash2 size={16} />
@@ -270,6 +296,69 @@ const Documents: React.FC = () => {
                </div>
             </div>
          </Modal>
+
+         {/* Delete Confirmation Modal */}
+         <Modal isOpen={deleteModalOpen} onClose={() => { setDeleteModalOpen(false); setDocToDelete(null); }} title="Delete Document">
+            <div className="space-y-4">
+               <p className="text-sm text-slate-600">
+                  Are you sure you want to delete <span className="font-medium text-navy-900">{docToDelete?.name}</span>? This action cannot be undone.
+               </p>
+               <div className="pt-2 flex gap-3">
+                  <button
+                     onClick={() => { setDeleteModalOpen(false); setDocToDelete(null); }}
+                     className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+                  >
+                     Cancel
+                  </button>
+                  <button
+                     onClick={confirmDelete}
+                     className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                  >
+                     Delete
+                  </button>
+               </div>
+            </div>
+         </Modal>
+
+         {/* Preview Modal */}
+         {previewDoc && (
+            <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-8">
+               <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+                  <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+                     <h3 className="text-lg font-semibold text-navy-900">{previewDoc.name}</h3>
+                     <button
+                        onClick={() => setPreviewDoc(null)}
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+                     >
+                        <X size={20} />
+                     </button>
+                  </div>
+                  <div className="flex-1 overflow-auto p-4 bg-slate-100 flex items-center justify-center">
+                     {previewDoc.type?.toLowerCase() === 'pdf' ? (
+                        <iframe
+                           src={`${import.meta.env.VITE_API_URL || ''}${previewDoc.url}`}
+                           className="w-full h-[70vh] border-0 rounded-lg bg-white"
+                           title={previewDoc.name}
+                        />
+                     ) : (
+                        <img
+                           src={`${import.meta.env.VITE_API_URL || ''}${previewDoc.url}`}
+                           alt={previewDoc.name}
+                           className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                        />
+                     )}
+                  </div>
+                  <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
+                     <button
+                        onClick={() => handleDownload(previewDoc.id)}
+                        className="flex items-center gap-2 px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                     >
+                        <Download size={16} /> Download
+                     </button>
+                  </div>
+               </div>
+            </div>
+         )}
       </div>
    );
 };

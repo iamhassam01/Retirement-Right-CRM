@@ -63,7 +63,9 @@ app.use(helmet({
   originAgentCluster: false,
 }));
 app.use(morgan('dev'));
-app.use(cors());
+app.use(cors({
+  exposedHeaders: ['Content-Disposition']
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 

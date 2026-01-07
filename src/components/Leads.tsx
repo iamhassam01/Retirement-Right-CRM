@@ -86,7 +86,7 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
    }
 
    return (
-      <div className="p-8 h-full flex flex-col">
+      <div className="p-8 flex flex-col">
          <div className="flex justify-between items-center mb-6">
             <div>
                <h2 className="text-2xl font-bold text-navy-900">Leads Management</h2>

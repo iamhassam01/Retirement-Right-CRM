@@ -85,7 +85,7 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
    }
 
    return (
-      <div className="p-8 h-full flex flex-col animate-fade-in">
+      <div className="p-8 flex flex-col animate-fade-in">
          <div className="flex justify-between items-center mb-8">
             <div>
                <h2 className="text-2xl font-bold text-navy-900">Client Roster</h2>
