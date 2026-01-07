@@ -3,6 +3,7 @@ import { Client, Activity } from '../types';
 import { activityService } from '../services/activity.service';
 import { clientService } from '../services/client.service';
 import { eventService } from '../services/event.service';
+import { teamService, TeamMember } from '../services/team.service';
 import { documentService, Document } from '../services/document.service';
 import {
   Phone, Mail, Calendar, FileText, Shield, ChevronRight,
@@ -42,12 +43,27 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   });
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [isScheduling, setIsScheduling] = useState(false);
+  const [advisors, setAdvisors] = useState<TeamMember[]>([]);
   const [scheduleForm, setScheduleForm] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
     time: '10:00',
-    type: 'Meeting' as 'Meeting' | 'Call' | 'Workshop'
+    type: 'Meeting' as 'Meeting' | 'Call' | 'Workshop',
+    advisorId: ''
   });
+
+  useEffect(() => {
+    // Fetch advisors for the appointment form
+    const fetchAdvisors = async () => {
+      try {
+        const members = await teamService.getAll();
+        setAdvisors(members.filter(m => m.role === 'ADVISOR' || m.role === 'ADMIN'));
+      } catch (error) {
+        console.error('Failed to fetch advisors:', error);
+      }
+    };
+    fetchAdvisors();
+  }, []);
 
   const tabs = [
     { id: 'history', label: 'History' },
@@ -488,7 +504,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               start,
               end,
               type: scheduleForm.type,
-              clientId: clientData.id
+              clientId: clientData.id,
+              advisorId: scheduleForm.advisorId
             });
             setIsScheduleModalOpen(false);
             setScheduleForm(prev => ({ ...prev, title: '' }));
@@ -503,7 +520,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
           }
         }} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-navy-900 mb-1">Title</label>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Appointment Title</label>
             <input
               type="text"
               value={scheduleForm.title}
@@ -512,15 +529,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
-            <input
-              type="text"
-              value={clientData.name}
-              disabled
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600"
-            />
-          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
@@ -545,6 +554,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               />
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
             <select
@@ -557,12 +567,39 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               <option value="Workshop">Workshop</option>
             </select>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
+              <input
+                type="text"
+                value={clientData.name}
+                disabled
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Advisor</label>
+              <select
+                value={scheduleForm.advisorId}
+                onChange={(e) => setScheduleForm(prev => ({ ...prev, advisorId: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">Select Advisor...</option>
+                {advisors.map(a => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {clientData.phone && (
-            <p className="text-xs text-slate-500"> Client phone: {clientData.phone}</p>
+            <p className="text-xs text-slate-500">Client phone: {clientData.phone}</p>
           )}
           {clientData.email && (
-            <p className="text-xs text-slate-500"> Client email: {clientData.email}</p>
+            <p className="text-xs text-slate-500">Client email: {clientData.email}</p>
           )}
+
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isScheduling}>Cancel</button>
             <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2" disabled={isScheduling}>

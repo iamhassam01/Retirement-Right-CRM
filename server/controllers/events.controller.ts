@@ -37,12 +37,10 @@ export const getEvents = async (req: Request, res: Response) => {
             type: e.type,
             status: e.status,
             createdAt: e.createdAt, // For Activity Log timestamps
+            clientId: e.clientId,
             clientName: e.client?.name,
-            advisorName: e.advisor?.name,
-            extendedProps: {
-                clientId: e.clientId,
-                advisorId: e.advisorId
-            }
+            advisorId: e.advisorId,
+            advisorName: e.advisor?.name
         }));
 
         res.json(formatted);

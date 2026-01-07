@@ -287,7 +287,7 @@ const CalendarView: React.FC = () => {
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingEvent(null); }} title={editingEvent ? 'Edit Appointment' : 'New Appointment'}>
-        <form onSubmit={handleCreateEvent} className="space-y-4">
+        <form key={editingEvent ? editingEvent.id : 'new'} onSubmit={handleCreateEvent} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Appointment Title</label>
             <input name="title" type="text" defaultValue={editingEvent?.title || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Portfolio Review" required />
