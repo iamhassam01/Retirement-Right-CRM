@@ -11,6 +11,8 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
    const [clients, setClients] = useState<Client[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState('');
+   const [filterHealth, setFilterHealth] = useState<string>('all');
+   const [filterRisk, setFilterRisk] = useState<string>('all');
 
    useEffect(() => {
       const fetchClients = async () => {
@@ -27,10 +29,20 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
       fetchClients();
    }, []);
 
-   const filteredClients = clients.filter(c =>
-      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.email?.toLowerCase().includes(searchTerm.toLowerCase())
-   );
+   const filteredClients = clients.filter(c => {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = (
+         c.name.toLowerCase().includes(search) ||
+         c.email?.toLowerCase().includes(search) ||
+         c.phone?.toLowerCase().includes(search) ||
+         c.status?.toLowerCase().includes(search) ||
+         c.riskProfile?.toLowerCase().includes(search) ||
+         c.tags?.some(tag => tag.toLowerCase().includes(search))
+      );
+      const matchesHealth = filterHealth === 'all' || c.portfolioHealth === filterHealth;
+      const matchesRisk = filterRisk === 'all' || c.riskProfile === filterRisk;
+      return matchesSearch && matchesHealth && matchesRisk;
+   });
 
    // Calculate portfolio health percentage
    const calculatePortfolioHealth = (): string => {
@@ -117,9 +129,26 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
                   />
                </div>
                <div className="flex gap-3">
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
-                     <Filter size={16} /> Filters
-                  </button>
+                  <select
+                     value={filterHealth}
+                     onChange={(e) => setFilterHealth(e.target.value)}
+                     className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                  >
+                     <option value="all">All Health</option>
+                     <option value="On Track">On Track</option>
+                     <option value="Review Needed">Review Needed</option>
+                     <option value="Rebalance">Rebalance</option>
+                  </select>
+                  <select
+                     value={filterRisk}
+                     onChange={(e) => setFilterRisk(e.target.value)}
+                     className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                  >
+                     <option value="all">All Risk</option>
+                     <option value="Conservative">Conservative</option>
+                     <option value="Moderate">Moderate</option>
+                     <option value="Aggressive">Aggressive</option>
+                  </select>
                </div>
             </div>
 
@@ -170,7 +199,15 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
                         </div>
                         <div className="col-span-2">
                            <p className="text-sm text-slate-600">
-                              {client.lastContact ? new Date(client.lastContact).toLocaleDateString() : 'Never'}
+                              {client.lastContact
+                                 ? new Date(client.lastContact).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                 })
+                                 : 'Never'}
                            </p>
                         </div>
                         <div className="col-span-1 text-right">

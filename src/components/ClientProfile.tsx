@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Client, Activity } from '../types';
 import { activityService } from '../services/activity.service';
 import { clientService } from '../services/client.service';
+import { eventService } from '../services/event.service';
 import { documentService, Document } from '../services/document.service';
 import {
   Phone, Mail, Calendar, FileText, Shield, ChevronRight,
@@ -40,6 +41,13 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
     tags: initialClient.tags?.join(', ') || ''
   });
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    title: '',
+    date: new Date().toISOString().split('T')[0],
+    time: '10:00',
+    type: 'Meeting' as 'Meeting' | 'Call' | 'Workshop'
+  });
 
   const tabs = [
     { id: 'history', label: 'History' },
@@ -205,12 +213,29 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide bg-emerald-50 text-emerald-700">
                   {clientData.status}
                 </span>
+                {clientData.riskProfile && (
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${clientData.riskProfile === 'Conservative' ? 'bg-blue-50 text-blue-700' :
+                      clientData.riskProfile === 'Moderate' ? 'bg-amber-50 text-amber-700' :
+                        'bg-rose-50 text-rose-700'
+                    }`}>
+                    {clientData.riskProfile}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-6 text-sm text-slate-500">
                 <span className="flex items-center gap-1.5"><Mail size={14} /> {clientData.email}</span>
                 <span className="flex items-center gap-1.5"><Phone size={14} /> {clientData.phone}</span>
                 <span className="flex items-center gap-1.5"><Shield size={14} /> {clientData.advisor}</span>
               </div>
+              {clientData.tags && clientData.tags.length > 0 && (
+                <div className="flex items-center gap-2 mt-2">
+                  {clientData.tags.map((tag, idx) => (
+                    <span key={idx} className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded text-xs font-medium">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -448,6 +473,104 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             {saveStatus === 'error' && 'Failed - Try Again'}
           </button>
         </div>
+      </Modal>
+
+      {/* Schedule Appointment Modal */}
+      <Modal isOpen={isScheduleModalOpen} onClose={() => { setIsScheduleModalOpen(false); setScheduleForm(prev => ({ ...prev, title: '' })); }} title="Schedule Appointment">
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          setIsScheduling(true);
+          try {
+            const start = new Date(`${scheduleForm.date}T${scheduleForm.time}`);
+            const end = new Date(start.getTime() + 60 * 60 * 1000);
+            await eventService.create({
+              title: scheduleForm.title || `Meeting with ${clientData.name}`,
+              start,
+              end,
+              type: scheduleForm.type,
+              clientId: clientData.id
+            });
+            setIsScheduleModalOpen(false);
+            setScheduleForm(prev => ({ ...prev, title: '' }));
+            // Refresh activities
+            const newActivities = await activityService.getByClient(clientData.id);
+            setActivities(newActivities);
+          } catch (error) {
+            console.error('Failed to schedule:', error);
+            alert('Failed to schedule appointment.');
+          } finally {
+            setIsScheduling(false);
+          }
+        }} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Title</label>
+            <input
+              type="text"
+              value={scheduleForm.title}
+              onChange={(e) => setScheduleForm(prev => ({ ...prev, title: e.target.value }))}
+              placeholder={`Meeting with ${clientData.name}`}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
+            <input
+              type="text"
+              value={clientData.name}
+              disabled
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-600"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
+              <input
+                name="date"
+                type="date"
+                value={scheduleForm.date}
+                onChange={(e) => setScheduleForm(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Time</label>
+              <input
+                name="time"
+                type="time"
+                value={scheduleForm.time}
+                onChange={(e) => setScheduleForm(prev => ({ ...prev, time: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
+            <select
+              value={scheduleForm.type}
+              onChange={(e) => setScheduleForm(prev => ({ ...prev, type: e.target.value as any }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+            >
+              <option value="Meeting">Meeting</option>
+              <option value="Call">Call</option>
+              <option value="Workshop">Workshop</option>
+            </select>
+          </div>
+          {clientData.phone && (
+            <p className="text-xs text-slate-500">📞 Client phone: {clientData.phone}</p>
+          )}
+          {clientData.email && (
+            <p className="text-xs text-slate-500">📧 Client email: {clientData.email}</p>
+          )}
+          <div className="pt-4 flex gap-3">
+            <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isScheduling}>Cancel</button>
+            <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2" disabled={isScheduling}>
+              {isScheduling ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
+              {isScheduling ? 'Scheduling...' : 'Schedule'}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   );

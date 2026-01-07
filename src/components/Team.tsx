@@ -8,11 +8,12 @@ const Team: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Form state
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
   const [formRole, setFormRole] = useState<'ADMIN' | 'ADVISOR' | 'STAFF'>('STAFF');
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteConfirmMember, setDeleteConfirmMember] = useState<TeamMember | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -50,14 +51,18 @@ const Team: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this team member?')) return;
-
+  const handleDelete = async () => {
+    if (!deleteConfirmMember) return;
+    setIsDeleting(true);
     try {
-      await teamService.delete(id);
-      setMembers(prev => prev.filter(m => m.id !== id));
+      await teamService.delete(deleteConfirmMember.id);
+      setMembers(prev => prev.filter(m => m.id !== deleteConfirmMember.id));
+      setDeleteConfirmMember(null);
     } catch (error) {
       console.error('Failed to delete member:', error);
+      alert('Failed to remove team member. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -141,8 +146,13 @@ const Team: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <button
-                      onClick={() => handleDelete(member.id)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteConfirmMember(member);
+                      }}
                       className="text-slate-400 hover:text-rose-600 transition-colors"
+                      title="Remove Member"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -208,6 +218,50 @@ const Team: React.FC = () => {
               className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center"
             >
               {isSaving ? <Loader2 className="animate-spin" size={16} /> : 'Send Invitation'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmMember !== null}
+        onClose={() => setDeleteConfirmMember(null)}
+        title="Remove Team Member"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600">
+            Are you sure you want to remove <span className="font-semibold text-navy-900">"{deleteConfirmMember?.name}"</span> from the team?
+          </p>
+          <p className="text-sm text-slate-500">
+            This action cannot be undone. They will lose access to the CRM.
+          </p>
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmMember(null)}
+              className="flex-1 py-2.5 px-4 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  Remove Member
+                </>
+              )}
             </button>
           </div>
         </div>

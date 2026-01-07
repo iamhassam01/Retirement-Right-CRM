@@ -14,6 +14,8 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
    const [leads, setLeads] = useState<Client[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [searchTerm, setSearchTerm] = useState('');
+   const [filterStatus, setFilterStatus] = useState<string>('all');
+   const [filterStage, setFilterStage] = useState<string>('all');
 
    useEffect(() => {
       const fetchLeads = async () => {
@@ -48,10 +50,20 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
       }
    };
 
-   const filteredLeads = leads.filter(l =>
-      l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.email?.toLowerCase().includes(searchTerm.toLowerCase())
-   );
+   const filteredLeads = leads.filter(l => {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = (
+         l.name.toLowerCase().includes(search) ||
+         l.email?.toLowerCase().includes(search) ||
+         l.phone?.toLowerCase().includes(search) ||
+         l.status?.toLowerCase().includes(search) ||
+         l.pipelineStage?.toLowerCase().includes(search) ||
+         l.tags?.some(tag => tag.toLowerCase().includes(search))
+      );
+      const matchesStatus = filterStatus === 'all' || l.status === filterStatus;
+      const matchesStage = filterStage === 'all' || l.pipelineStage === filterStage;
+      return matchesSearch && matchesStatus && matchesStage;
+   });
 
    if (isLoading) {
       return (
@@ -84,9 +96,27 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
                   />
                </div>
                <div className="flex gap-3">
-                  <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
-                     <Filter size={16} /> Filter
-                  </button>
+                  <select
+                     value={filterStatus}
+                     onChange={(e) => setFilterStatus(e.target.value)}
+                     className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                  >
+                     <option value="all">All Status</option>
+                     <option value="Lead">Lead</option>
+                     <option value="Prospect">Prospect</option>
+                  </select>
+                  <select
+                     value={filterStage}
+                     onChange={(e) => setFilterStage(e.target.value)}
+                     className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                  >
+                     <option value="all">All Stages</option>
+                     <option value="New Lead">New Lead</option>
+                     <option value="Contacted">Contacted</option>
+                     <option value="Appointment Booked">Appointment Booked</option>
+                     <option value="Attended">Attended</option>
+                     <option value="Proposal">Proposal</option>
+                  </select>
                </div>
             </div>
 
@@ -130,7 +160,15 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
                         </div>
                         <div className="col-span-2">
                            <p className="text-sm text-slate-600">
-                              {lead.lastContact ? new Date(lead.lastContact).toLocaleDateString() : 'Never'}
+                              {lead.lastContact
+                                 ? new Date(lead.lastContact).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                 })
+                                 : 'Never'}
                            </p>
                         </div>
                         <div className="col-span-1 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
