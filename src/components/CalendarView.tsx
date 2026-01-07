@@ -21,6 +21,7 @@ const CalendarView: React.FC = () => {
   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<CalendarEvent | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [advisors, setAdvisors] = useState<{ id: string, name: string }[]>([]);
 
@@ -385,31 +386,9 @@ const CalendarView: React.FC = () => {
                   <button
                     type="button"
                     onClick={(e) => {
-                      console.log('Delete button clicked for event:', event.id, event.title);
                       e.stopPropagation();
                       e.preventDefault();
-
-                      console.log('About to show confirm dialog');
-                      const shouldDelete = window.confirm('Are you sure you want to delete this appointment?');
-                      console.log('User confirmed:', shouldDelete);
-
-                      if (shouldDelete) {
-                        console.log('Starting delete for event:', event.id);
-                        setIsDeleting(event.id);
-                        eventService.delete(event.id)
-                          .then(() => {
-                            console.log('Delete successful for event:', event.id);
-                            setUpcomingEvents(prev => prev.filter(ev => ev.id !== event.id));
-                            fetchEvents();
-                          })
-                          .catch((error) => {
-                            console.error('Delete failed:', error);
-                            alert('Failed to delete appointment. Please try again.');
-                          })
-                          .finally(() => {
-                            setIsDeleting(null);
-                          });
-                      }
+                      setDeleteConfirmEvent(event);
                     }}
                     disabled={isDeleting === event.id}
                     className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50 cursor-pointer"
@@ -421,6 +400,66 @@ const CalendarView: React.FC = () => {
               </div>
             ))
           )}
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteConfirmEvent !== null}
+        onClose={() => setDeleteConfirmEvent(null)}
+        title="Delete Appointment"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-600">
+            Are you sure you want to delete <span className="font-semibold text-navy-900">"{deleteConfirmEvent?.title}"</span>?
+          </p>
+          <p className="text-sm text-slate-500">
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmEvent(null)}
+              className="flex-1 py-2.5 px-4 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+              disabled={isDeleting !== null}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (!deleteConfirmEvent) return;
+                setIsDeleting(deleteConfirmEvent.id);
+                eventService.delete(deleteConfirmEvent.id)
+                  .then(() => {
+                    setUpcomingEvents(prev => prev.filter(ev => ev.id !== deleteConfirmEvent.id));
+                    fetchEvents();
+                    setDeleteConfirmEvent(null);
+                  })
+                  .catch((error) => {
+                    console.error('Delete failed:', error);
+                    alert('Failed to delete appointment. Please try again.');
+                  })
+                  .finally(() => {
+                    setIsDeleting(null);
+                  });
+              }}
+              disabled={isDeleting !== null}
+              className="flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={16} />
+                  Delete
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
