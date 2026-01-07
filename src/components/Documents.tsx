@@ -95,6 +95,19 @@ const Documents: React.FC = () => {
       return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(type || '');
    };
 
+   const getMimeType = (type: string) => {
+      const ext = type?.toLowerCase();
+      switch (ext) {
+         case 'pdf': return 'application/pdf';
+         case 'png': return 'image/png';
+         case 'jpg':
+         case 'jpeg': return 'image/jpeg';
+         case 'gif': return 'image/gif';
+         case 'webp': return 'image/webp';
+         default: return 'application/octet-stream';
+      }
+   };
+
    const openPreview = async (doc: Document) => {
       try {
          setPreviewDoc(doc);
@@ -104,7 +117,8 @@ const Documents: React.FC = () => {
             responseType: 'blob'
          });
          // Create blob URL for secure preview
-         const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+         const mimeType = getMimeType(doc.type);
+         const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
          setPreviewUrl(blobUrl);
       } catch (error) {
          console.error('Preview failed:', error);

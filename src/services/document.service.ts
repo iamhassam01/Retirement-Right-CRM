@@ -56,7 +56,13 @@ export const documentService = {
         });
 
         // Create download link with the filename passed from frontend
-        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const ext = filename.split('.').pop()?.toLowerCase();
+        let mimeType = 'application/octet-stream';
+        if (ext === 'pdf') mimeType = 'application/pdf';
+        else if (ext === 'png') mimeType = 'image/png';
+        else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
         const link = document.createElement('a');
         link.href = url;
         link.download = filename; // Use filename from frontend (more reliable)
