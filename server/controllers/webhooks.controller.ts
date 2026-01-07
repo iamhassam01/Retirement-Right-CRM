@@ -318,9 +318,10 @@ export const handleN8nWebhook = async (req: Request, res: Response) => {
         data: {
           title: `Callback: ${name || 'Voicemail'}`,
           description: `Reason: ${reason || 'No reason provided'}\nAddress: ${address || 'N/A'}\nPhone: ${phone}`,
-          priority: 'High',
+          priority: data.priority || 'High',
           type: 'Call',
           status: 'Pending',
+          dueDate: data.dueDate ? new Date(data.dueDate) : new Date(Date.now() + 4 * 60 * 60 * 1000), // Default: 4 hours from now
           clientId: client?.id
         }
       });

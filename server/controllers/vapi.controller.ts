@@ -38,6 +38,7 @@ export const checkAvailability = async (req: Request, res: Response) => {
                 name: true,
                 phone: true,
                 title: true,
+                email: true,
                 isAvailable: true
             }
         });
@@ -45,14 +46,19 @@ export const checkAvailability = async (req: Request, res: Response) => {
         if (advisor) {
             console.log(`Found available advisor: ${advisor.name}`);
             return res.json({
+                found: true,
+                isAvailable: true,
                 available: true,
                 name: advisor.name,
                 phone: advisor.phone,
-                title: advisor.title
+                title: advisor.title,
+                email: advisor.email,
+                id: advisor.id
             });
         } else {
             console.log('No available advisor found.');
             return res.json({
+                found: false,
                 available: false,
                 message: 'No available advisor found matching criteria.'
             });
