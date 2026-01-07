@@ -91,7 +91,9 @@ const CalendarView: React.FC = () => {
           title,
           start,
           end,
-          type
+          type,
+          clientId: clientId || undefined,
+          advisorId: advisorId || undefined
         });
         setEditingEvent(null);
       } else {

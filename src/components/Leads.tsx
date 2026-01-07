@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { clientService } from '../services/client.service';
 import { Client } from '../types';
-import { Search, Filter, Phone, Mail, ArrowRight, Loader2 } from 'lucide-react';
+import { Search, Filter, Phone, Mail, ArrowRight, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import Modal from './Modal';
 
 interface LeadsProps {
@@ -16,6 +16,8 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
    const [searchTerm, setSearchTerm] = useState('');
    const [filterStatus, setFilterStatus] = useState<string>('all');
    const [filterStage, setFilterStage] = useState<string>('all');
+   const [currentPage, setCurrentPage] = useState(1);
+   const [pageSize, setPageSize] = useState(10);
 
    useEffect(() => {
       const fetchLeads = async () => {
@@ -64,6 +66,16 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
       const matchesStage = filterStage === 'all' || l.pipelineStage === filterStage;
       return matchesSearch && matchesStatus && matchesStage;
    });
+
+   // Pagination calculations
+   const totalPages = Math.ceil(filteredLeads.length / pageSize);
+   const startIndex = (currentPage - 1) * pageSize;
+   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + pageSize);
+
+   // Reset to page 1 when filters change
+   useEffect(() => {
+      setCurrentPage(1);
+   }, [searchTerm, filterStatus, filterStage, pageSize]);
 
    if (isLoading) {
       return (
@@ -131,12 +143,12 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
 
             {/* Table Body */}
             <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
-               {filteredLeads.length === 0 ? (
+               {paginatedLeads.length === 0 ? (
                   <div className="p-8 text-center text-slate-400">
                      <p className="text-sm">No leads found. Add your first lead!</p>
                   </div>
                ) : (
-                  filteredLeads.map(lead => (
+                  paginatedLeads.map(lead => (
                      <div key={lead.id} onClick={() => onSelectClient(lead.id)} className="grid grid-cols-12 p-4 items-center hover:bg-slate-50 transition-colors group cursor-pointer">
                         <div className="col-span-4 flex items-center gap-3">
                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
@@ -186,6 +198,58 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
                      </div>
                   ))
                )}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <span className="text-sm text-slate-600">
+                     Showing {filteredLeads.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + pageSize, filteredLeads.length)} of {filteredLeads.length} leads
+                  </span>
+                  <select
+                     value={pageSize}
+                     onChange={(e) => setPageSize(Number(e.target.value))}
+                     className="px-2 py-1 bg-white border border-slate-200 rounded text-sm text-slate-600"
+                  >
+                     <option value={10}>10 per page</option>
+                     <option value={25}>25 per page</option>
+                     <option value={50}>50 per page</option>
+                     <option value={100}>100 per page</option>
+                  </select>
+               </div>
+               <div className="flex items-center gap-1">
+                  <button
+                     onClick={() => setCurrentPage(1)}
+                     disabled={currentPage === 1}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronsLeft size={18} className="text-slate-600" />
+                  </button>
+                  <button
+                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                     disabled={currentPage === 1}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronLeft size={18} className="text-slate-600" />
+                  </button>
+                  <span className="px-3 py-1 text-sm text-slate-600">
+                     Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                     disabled={currentPage >= totalPages}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronRight size={18} className="text-slate-600" />
+                  </button>
+                  <button
+                     onClick={() => setCurrentPage(totalPages)}
+                     disabled={currentPage >= totalPages}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronsRight size={18} className="text-slate-600" />
+                  </button>
+               </div>
             </div>
          </div>
 

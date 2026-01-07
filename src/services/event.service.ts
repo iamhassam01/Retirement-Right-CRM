@@ -89,12 +89,14 @@ export const eventService = {
         };
     },
 
-    update: async (id: string, data: { title?: string; start?: Date; end?: Date; type?: string }): Promise<CalendarEvent> => {
+    update: async (id: string, data: { title?: string; start?: Date; end?: Date; type?: string; clientId?: string; advisorId?: string }): Promise<CalendarEvent> => {
         const payload: any = {};
         if (data.title) payload.title = data.title;
         if (data.start) payload.start = data.start.toISOString();
         if (data.end) payload.end = data.end.toISOString();
         if (data.type) payload.type = data.type;
+        if (data.clientId !== undefined) payload.clientId = data.clientId || null;
+        if (data.advisorId !== undefined) payload.advisorId = data.advisorId || null;
 
         const response = await api.put<EventResponse>(`/events/${id}`, payload);
         const startDate = safeParseDate(response.data.start || response.data.startTime);

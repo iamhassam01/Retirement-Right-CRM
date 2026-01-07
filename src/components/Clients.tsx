@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { clientService } from '../services/client.service';
 import { Client } from '../types';
-import { Search, Filter, ArrowUpRight, ArrowDownRight, MoreHorizontal, ShieldCheck, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, Filter, ArrowUpRight, ArrowDownRight, MoreHorizontal, ShieldCheck, AlertTriangle, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
 interface ClientsProps {
    onSelectClient: (id: string) => void;
@@ -13,13 +13,16 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
    const [searchTerm, setSearchTerm] = useState('');
    const [filterHealth, setFilterHealth] = useState<string>('all');
    const [filterRisk, setFilterRisk] = useState<string>('all');
+   const [filterStatus, setFilterStatus] = useState<string>('all');
+   const [currentPage, setCurrentPage] = useState(1);
+   const [pageSize, setPageSize] = useState(10);
 
    useEffect(() => {
       const fetchClients = async () => {
          try {
             const data = await clientService.getAll();
-            // Filter only Active clients
-            setClients(data.filter((c: Client) => c.status === 'Active'));
+            // Show all clients (Active + Churned)
+            setClients(data.filter((c: Client) => c.status === 'Active' || c.status === 'Churned'));
          } catch (error) {
             console.error('Failed to fetch clients:', error);
          } finally {
@@ -41,8 +44,19 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
       );
       const matchesHealth = filterHealth === 'all' || c.portfolioHealth === filterHealth;
       const matchesRisk = filterRisk === 'all' || c.riskProfile === filterRisk;
-      return matchesSearch && matchesHealth && matchesRisk;
+      const matchesStatus = filterStatus === 'all' || c.status === filterStatus;
+      return matchesSearch && matchesHealth && matchesRisk && matchesStatus;
    });
+
+   // Pagination calculations
+   const totalPages = Math.ceil(filteredClients.length / pageSize);
+   const startIndex = (currentPage - 1) * pageSize;
+   const paginatedClients = filteredClients.slice(startIndex, startIndex + pageSize);
+
+   // Reset to page 1 when filters change
+   useEffect(() => {
+      setCurrentPage(1);
+   }, [searchTerm, filterHealth, filterRisk, filterStatus, pageSize]);
 
    // Calculate portfolio health percentage
    const calculatePortfolioHealth = (): string => {
@@ -149,6 +163,15 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
                      <option value="Moderate">Moderate</option>
                      <option value="Aggressive">Aggressive</option>
                   </select>
+                  <select
+                     value={filterStatus}
+                     onChange={(e) => setFilterStatus(e.target.value)}
+                     className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-600"
+                  >
+                     <option value="all">All Status</option>
+                     <option value="Active">Active</option>
+                     <option value="Churned">Churned</option>
+                  </select>
                </div>
             </div>
 
@@ -164,12 +187,12 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
 
             {/* Table Body */}
             <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
-               {filteredClients.length === 0 ? (
+               {paginatedClients.length === 0 ? (
                   <div className="p-8 text-center text-slate-400">
                      <p className="text-sm">No clients found. Add your first client!</p>
                   </div>
                ) : (
-                  filteredClients.map(client => (
+                  paginatedClients.map(client => (
                      <div key={client.id} className="grid grid-cols-12 p-4 items-center hover:bg-slate-50 transition-colors group">
                         <div className="col-span-3 flex items-center gap-3">
                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
@@ -221,6 +244,58 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
                      </div>
                   ))
                )}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <span className="text-sm text-slate-600">
+                     Showing {filteredClients.length === 0 ? 0 : startIndex + 1}-{Math.min(startIndex + pageSize, filteredClients.length)} of {filteredClients.length} clients
+                  </span>
+                  <select
+                     value={pageSize}
+                     onChange={(e) => setPageSize(Number(e.target.value))}
+                     className="px-2 py-1 bg-white border border-slate-200 rounded text-sm text-slate-600"
+                  >
+                     <option value={10}>10 per page</option>
+                     <option value={25}>25 per page</option>
+                     <option value={50}>50 per page</option>
+                     <option value={100}>100 per page</option>
+                  </select>
+               </div>
+               <div className="flex items-center gap-1">
+                  <button
+                     onClick={() => setCurrentPage(1)}
+                     disabled={currentPage === 1}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronsLeft size={18} className="text-slate-600" />
+                  </button>
+                  <button
+                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                     disabled={currentPage === 1}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronLeft size={18} className="text-slate-600" />
+                  </button>
+                  <span className="px-3 py-1 text-sm text-slate-600">
+                     Page {currentPage} of {totalPages || 1}
+                  </span>
+                  <button
+                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                     disabled={currentPage >= totalPages}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronRight size={18} className="text-slate-600" />
+                  </button>
+                  <button
+                     onClick={() => setCurrentPage(totalPages)}
+                     disabled={currentPage >= totalPages}
+                     className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                     <ChevronsRight size={18} className="text-slate-600" />
+                  </button>
+               </div>
             </div>
          </div>
       </div>
