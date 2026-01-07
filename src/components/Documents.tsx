@@ -99,7 +99,9 @@ const Documents: React.FC = () => {
       const token = localStorage.getItem('token');
       if (token) {
          setPreviewDoc(doc);
-         setPreviewUrl(`/api/documents/${doc.id}/download?token=${token}&inline=true`);
+         // Include filename in URL path so Chrome PDF viewer uses it as the download name
+         const encodedFilename = encodeURIComponent(doc.name);
+         setPreviewUrl(`/api/documents/${doc.id}/download/${encodedFilename}?token=${token}&inline=true`);
          setIsPreviewLoading(false); // Direct load, let browser handle status
       }
    };

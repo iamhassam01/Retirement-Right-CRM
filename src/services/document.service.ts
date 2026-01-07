@@ -49,7 +49,7 @@ export const documentService = {
     },
 
     // Download document securely via authenticated Direct URL
-    // This allows the browser to handle the file stream and respect Content-Disposition header
+    // Filename is embedded in URL path for Chrome PDF viewer compatibility
     download: async (id: string, filename: string): Promise<void> => {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -57,11 +57,13 @@ export const documentService = {
             return;
         }
 
-        const url = `/api/documents/${id}/download?token=${token}`;
+        // Include filename in URL path so browser uses it as the download name
+        const encodedFilename = encodeURIComponent(filename);
+        const url = `/api/documents/${id}/download/${encodedFilename}?token=${token}`;
 
         const link = document.createElement('a');
         link.href = url;
-        // Setting download attribute acts as a fallback, but server header takes precedence
+        // download attribute as additional fallback
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
