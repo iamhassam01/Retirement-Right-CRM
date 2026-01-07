@@ -1,3 +1,5 @@
+import { saveAs } from 'file-saver';
+import mime from 'mime-types';
 import api from '../api/axios';
 
 export interface Document {
@@ -55,21 +57,9 @@ export const documentService = {
             responseType: 'blob'
         });
 
-        // Create download link with the filename passed from frontend
-        const ext = filename.split('.').pop()?.toLowerCase();
-        let mimeType = 'application/octet-stream';
-        if (ext === 'pdf') mimeType = 'application/pdf';
-        else if (ext === 'png') mimeType = 'image/png';
-        else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
-
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename; // Use filename from frontend (more reliable)
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
+        const type = mime.lookup(filename) || 'application/octet-stream';
+        const blob = new Blob([response.data], { type });
+        saveAs(blob, filename);
     },
 
     // Delete document

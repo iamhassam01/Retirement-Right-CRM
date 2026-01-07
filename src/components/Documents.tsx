@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import mime from 'mime-types';
 import { documentService, Document } from '../services/document.service';
 import api from '../api/axios';
 import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
@@ -95,19 +96,6 @@ const Documents: React.FC = () => {
       return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(type || '');
    };
 
-   const getMimeType = (type: string) => {
-      const ext = type?.toLowerCase();
-      switch (ext) {
-         case 'pdf': return 'application/pdf';
-         case 'png': return 'image/png';
-         case 'jpg':
-         case 'jpeg': return 'image/jpeg';
-         case 'gif': return 'image/gif';
-         case 'webp': return 'image/webp';
-         default: return 'application/octet-stream';
-      }
-   };
-
    const openPreview = async (doc: Document) => {
       try {
          setPreviewDoc(doc);
@@ -116,9 +104,9 @@ const Documents: React.FC = () => {
          const response = await api.get(`/documents/${doc.id}/download`, {
             responseType: 'blob'
          });
-         // Create blob URL for secure preview
-         const mimeType = getMimeType(doc.type);
-         const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+         // Create blob URL for secure preview with dynamic mime type
+         const type = mime.lookup(doc.name) || 'application/octet-stream';
+         const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type }));
          setPreviewUrl(blobUrl);
       } catch (error) {
          console.error('Preview failed:', error);
