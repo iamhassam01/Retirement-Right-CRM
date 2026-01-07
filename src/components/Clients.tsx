@@ -73,8 +73,8 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
       return `${avg}%`;
    };
 
-   // Calculate at-risk clients
-   const atRiskCount = clients.filter(c => c.portfolioHealth === 'Rebalance').length;
+   // Calculate at-risk (churned) clients
+   const atRiskCount = clients.filter(c => c.status === 'Churned').length;
 
    if (isLoading) {
       return (
@@ -129,7 +129,7 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient }) => {
             </div>
          </div>
 
-         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
+         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
             {/* Table Actions */}
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
                <div className="relative w-96">

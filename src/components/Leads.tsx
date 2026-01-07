@@ -94,7 +94,7 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
             </div>
          </div>
 
-         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col flex-1 overflow-hidden">
+         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
             {/* Table Actions */}
             <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
                <div className="relative w-96">
