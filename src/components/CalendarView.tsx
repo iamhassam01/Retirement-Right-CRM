@@ -385,13 +385,20 @@ const CalendarView: React.FC = () => {
                   <button
                     type="button"
                     onClick={(e) => {
+                      console.log('Delete button clicked for event:', event.id, event.title);
                       e.stopPropagation();
                       e.preventDefault();
+
+                      console.log('About to show confirm dialog');
                       const shouldDelete = window.confirm('Are you sure you want to delete this appointment?');
+                      console.log('User confirmed:', shouldDelete);
+
                       if (shouldDelete) {
+                        console.log('Starting delete for event:', event.id);
                         setIsDeleting(event.id);
                         eventService.delete(event.id)
                           .then(() => {
+                            console.log('Delete successful for event:', event.id);
                             setUpcomingEvents(prev => prev.filter(ev => ev.id !== event.id));
                             fetchEvents();
                           })
@@ -405,7 +412,7 @@ const CalendarView: React.FC = () => {
                       }
                     }}
                     disabled={isDeleting === event.id}
-                    className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                    className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50 cursor-pointer"
                     title="Delete Appointment"
                   >
                     {isDeleting === event.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
