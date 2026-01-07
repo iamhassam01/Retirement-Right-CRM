@@ -369,8 +369,10 @@ const CalendarView: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      e.preventDefault();
                       setEditingEvent(event);
                       setIsAppointmentsModalOpen(false);
                       setIsModalOpen(true);
@@ -381,20 +383,25 @@ const CalendarView: React.FC = () => {
                     <Edit3 size={16} />
                   </button>
                   <button
-                    onClick={async (e) => {
+                    type="button"
+                    onClick={(e) => {
                       e.stopPropagation();
-                      if (confirm('Delete this appointment?')) {
+                      e.preventDefault();
+                      const shouldDelete = window.confirm('Are you sure you want to delete this appointment?');
+                      if (shouldDelete) {
                         setIsDeleting(event.id);
-                        try {
-                          await eventService.delete(event.id);
-                          setUpcomingEvents(prev => prev.filter(ev => ev.id !== event.id));
-                          fetchEvents();
-                        } catch (error) {
-                          console.error('Delete failed:', error);
-                          alert('Failed to delete appointment.');
-                        } finally {
-                          setIsDeleting(null);
-                        }
+                        eventService.delete(event.id)
+                          .then(() => {
+                            setUpcomingEvents(prev => prev.filter(ev => ev.id !== event.id));
+                            fetchEvents();
+                          })
+                          .catch((error) => {
+                            console.error('Delete failed:', error);
+                            alert('Failed to delete appointment. Please try again.');
+                          })
+                          .finally(() => {
+                            setIsDeleting(null);
+                          });
                       }
                     }}
                     disabled={isDeleting === event.id}
