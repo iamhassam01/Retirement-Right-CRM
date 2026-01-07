@@ -1,4 +1,3 @@
-import { getMimeType } from '../utils/fileTypes';
 import api from '../api/axios';
 
 export interface Document {
@@ -49,29 +48,24 @@ export const documentService = {
         return response.data;
     },
 
-    // Download document securely via authenticated API
-    // Filename is passed from frontend (we already have it) for reliability
+    // Download document securely via authenticated Direct URL
+    // This allows the browser to handle the file stream and respect Content-Disposition header
     download: async (id: string, filename: string): Promise<void> => {
-        const response = await api.get(`/documents/${id}/download`, {
-            responseType: 'blob'
-        });
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error('No auth token found');
+            return;
+        }
 
-        const type = getMimeType(filename);
-        const blob = new Blob([response.data], { type });
-        const url = window.URL.createObjectURL(blob);
+        const url = `/api/documents/${id}/download?token=${token}`;
 
-        // Use native anchor tag to force filename
         const link = document.createElement('a');
         link.href = url;
+        // Setting download attribute acts as a fallback, but server header takes precedence
         link.setAttribute('download', filename);
         document.body.appendChild(link);
         link.click();
-
-        // Clean up
-        setTimeout(() => {
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        }, 100);
+        document.body.removeChild(link);
     },
 
     // Delete document

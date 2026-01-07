@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getMimeType } from '../utils/fileTypes';
 import { documentService, Document } from '../services/document.service';
 import api from '../api/axios';
 import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
@@ -96,23 +95,12 @@ const Documents: React.FC = () => {
       return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(type || '');
    };
 
-   const openPreview = async (doc: Document) => {
-      try {
+   const openPreview = (doc: Document) => {
+      const token = localStorage.getItem('token');
+      if (token) {
          setPreviewDoc(doc);
-         setIsPreviewLoading(true);
-         // Fetch file via authenticated API endpoint
-         const response = await api.get(`/documents/${doc.id}/download`, {
-            responseType: 'blob'
-         });
-         // Create blob URL for secure preview with dynamic mime type
-         const type = getMimeType(doc.name);
-         const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type }));
-         setPreviewUrl(blobUrl);
-      } catch (error) {
-         console.error('Preview failed:', error);
-         setPreviewDoc(null);
-      } finally {
-         setIsPreviewLoading(false);
+         setPreviewUrl(`/api/documents/${doc.id}/download?token=${token}`);
+         setIsPreviewLoading(false); // Direct load, let browser handle status
       }
    };
 
@@ -375,7 +363,7 @@ const Documents: React.FC = () => {
                      ) : previewUrl ? (
                         previewDoc.type?.toLowerCase() === 'pdf' ? (
                            <iframe
-                              src={`${previewUrl}#toolbar=0`}
+                              src={previewUrl}
                               className="w-full h-[70vh] border-0 rounded-lg bg-white"
                               title={previewDoc.name}
                            />
