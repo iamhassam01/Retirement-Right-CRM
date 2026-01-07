@@ -99,7 +99,7 @@ const Documents: React.FC = () => {
       const token = localStorage.getItem('token');
       if (token) {
          setPreviewDoc(doc);
-         setPreviewUrl(`/api/documents/${doc.id}/download?token=${token}`);
+         setPreviewUrl(`/api/documents/${doc.id}/download?token=${token}&inline=true`);
          setIsPreviewLoading(false); // Direct load, let browser handle status
       }
    };

@@ -147,6 +147,8 @@ export const downloadDocument = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'Document not found' });
         }
 
+        const { inline } = req.query;
+
         // Get absolute file path
         const filePath = path.join(process.cwd(), document.url);
 
@@ -154,14 +156,32 @@ export const downloadDocument = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'File not found on server' });
         }
 
-        res.download(filePath, document.name, (err) => {
-            if (err) {
-                console.error('Error sending file:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Failed to download document' });
+        const filename = document.name || 'document.pdf';
+
+        if (inline === 'true') {
+            // Force inline for preview (iframe)
+            // Manually set content-disposition to ensure spaces/special chars are handled securely is better, 
+            // but standard header is fine for now. Quotes are important.
+            res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+            // Allow content-type to be auto-detected by sendFile based on extension
+            res.sendFile(filePath, (err) => {
+                if (err) {
+                    console.error('Error sending file (inline):', err);
+                    if (!res.headersSent) res.status(500).json({ error: 'Failed to preview document' });
                 }
-            }
-        });
+            });
+        } else {
+            // Force attachment for download
+            res.download(filePath, filename, (err) => {
+                if (err) {
+                    console.error('Error sending file:', err);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: 'Failed to download document' });
+                    }
+                }
+            });
+        }
     } catch (error) {
         console.error('Error downloading document:', error);
         res.status(500).json({ error: 'Failed to download document' });
