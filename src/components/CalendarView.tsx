@@ -84,20 +84,32 @@ const CalendarView: React.FC = () => {
       const start = new Date(`${dateStr}T${timeStr}`);
       const end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour duration
 
-      await createEvent({
-        title,
-        start,
-        end,
-        type,
-        clientId: clientId || undefined,
-        advisorId: advisorId || undefined
-      });
+      if (editingEvent) {
+        // Update existing event
+        await eventService.update(editingEvent.id, {
+          title,
+          start,
+          end,
+          type
+        });
+        setEditingEvent(null);
+      } else {
+        // Create new event
+        await createEvent({
+          title,
+          start,
+          end,
+          type,
+          clientId: clientId || undefined,
+          advisorId: advisorId || undefined
+        });
+      }
 
       setIsModalOpen(false);
-      await fetchEvents(); // Refresh after create
+      await fetchEvents(); // Refresh after create/update
     } catch (error) {
-      console.error('Failed to create event:', error);
-      alert('Failed to create appointment. Please try again.');
+      console.error('Failed to save event:', error);
+      alert('Failed to save appointment. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -218,7 +230,7 @@ const CalendarView: React.FC = () => {
         </div>
       </div>
 
-      <div className={`flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden transition-opacity duration-300 ${isAvailable ? 'opacity-100' : 'opacity-95'}`}>
+      <div className={`flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-y-auto transition-opacity duration-300 ${isAvailable ? 'opacity-100' : 'opacity-95'}`}>
         <div className="grid grid-cols-7 border-b border-slate-200">
           {days.map(day => (
             <div key={day} className="py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wide bg-slate-50">
@@ -227,7 +239,7 @@ const CalendarView: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex-1 grid grid-cols-7 grid-rows-5 relative">
+        <div className="flex-1 grid grid-cols-7 relative">
           {isLoading && (
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-20">
               <RefreshCw className="animate-spin text-teal-600" />
@@ -273,25 +285,25 @@ const CalendarView: React.FC = () => {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Appointment">
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingEvent(null); }} title={editingEvent ? 'Edit Appointment' : 'New Appointment'}>
         <form onSubmit={handleCreateEvent} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Appointment Title</label>
-            <input name="title" type="text" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Portfolio Review" required />
+            <input name="title" type="text" defaultValue={editingEvent?.title || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Portfolio Review" required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
-              <input name="date" type="date" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+              <input name="date" type="date" defaultValue={editingEvent ? editingEvent.start.toISOString().split('T')[0] : ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Time</label>
-              <input name="time" type="time" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+              <input name="time" type="time" defaultValue={editingEvent ? `${editingEvent.start.getHours().toString().padStart(2, '0')}:${editingEvent.start.getMinutes().toString().padStart(2, '0')}` : ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
-            <select name="type" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <select name="type" defaultValue={editingEvent?.type || 'Meeting'} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
               <option value="Meeting">Meeting</option>
               <option value="Call">Call</option>
               <option value="Workshop">Workshop</option>
@@ -314,9 +326,9 @@ const CalendarView: React.FC = () => {
             </div>
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isCreating}>Cancel</button>
+            <button type="button" onClick={() => { setIsModalOpen(false); setEditingEvent(null); }} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isCreating}>Cancel</button>
             <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50" disabled={isCreating}>
-              {isCreating ? 'Scheduling...' : 'Schedule'}
+              {isCreating ? (editingEvent ? 'Saving...' : 'Scheduling...') : (editingEvent ? 'Save Changes' : 'Schedule')}
             </button>
           </div>
         </form>
@@ -355,26 +367,43 @@ const CalendarView: React.FC = () => {
                     {event.type}
                   </span>
                 </div>
-                <button
-                  onClick={async () => {
-                    if (confirm('Delete this appointment?')) {
-                      setIsDeleting(event.id);
-                      try {
-                        await eventService.delete(event.id);
-                        setUpcomingEvents(prev => prev.filter(e => e.id !== event.id));
-                        fetchEvents();
-                      } catch (error) {
-                        alert('Failed to delete');
-                      } finally {
-                        setIsDeleting(null);
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingEvent(event);
+                      setIsAppointmentsModalOpen(false);
+                      setIsModalOpen(true);
+                    }}
+                    className="p-2 text-slate-400 hover:text-teal-600 transition-colors"
+                    title="Edit Appointment"
+                  >
+                    <Edit3 size={16} />
+                  </button>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (confirm('Delete this appointment?')) {
+                        setIsDeleting(event.id);
+                        try {
+                          await eventService.delete(event.id);
+                          setUpcomingEvents(prev => prev.filter(ev => ev.id !== event.id));
+                          fetchEvents();
+                        } catch (error) {
+                          console.error('Delete failed:', error);
+                          alert('Failed to delete appointment.');
+                        } finally {
+                          setIsDeleting(null);
+                        }
                       }
-                    }
-                  }}
-                  disabled={isDeleting === event.id}
-                  className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50"
-                >
-                  {isDeleting === event.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
-                </button>
+                    }}
+                    disabled={isDeleting === event.id}
+                    className="p-2 text-slate-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                    title="Delete Appointment"
+                  >
+                    {isDeleting === event.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  </button>
+                </div>
               </div>
             ))
           )}
