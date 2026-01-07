@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentService, Document } from '../services/document.service';
+import api from '../api/axios';
 import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
 import Modal from './Modal';
 
@@ -16,6 +17,8 @@ const Documents: React.FC = () => {
    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
    const [docToDelete, setDocToDelete] = useState<Document | null>(null);
    const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
+   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
    const categories = ['All', 'Client', 'Compliance', 'Internal'];
 
@@ -60,9 +63,10 @@ const Documents: React.FC = () => {
       }
    };
 
-   const handleDownload = async (id: string) => {
+   const handleDownload = async (doc: Document) => {
       try {
-         await documentService.download(id);
+         // Use authenticated API endpoint with filename from frontend
+         await documentService.download(doc.id, doc.name);
       } catch (error) {
          console.error('Download failed:', error);
       }
@@ -89,6 +93,33 @@ const Documents: React.FC = () => {
    const isPreviewable = (doc: Document) => {
       const type = doc.type?.toLowerCase();
       return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(type || '');
+   };
+
+   const openPreview = async (doc: Document) => {
+      try {
+         setPreviewDoc(doc);
+         setIsPreviewLoading(true);
+         // Fetch file via authenticated API endpoint
+         const response = await api.get(`/documents/${doc.id}/download`, {
+            responseType: 'blob'
+         });
+         // Create blob URL for secure preview
+         const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+         setPreviewUrl(blobUrl);
+      } catch (error) {
+         console.error('Preview failed:', error);
+         setPreviewDoc(null);
+      } finally {
+         setIsPreviewLoading(false);
+      }
+   };
+
+   const closePreview = () => {
+      if (previewUrl) {
+         window.URL.revokeObjectURL(previewUrl); // Clean up blob URL
+      }
+      setPreviewDoc(null);
+      setPreviewUrl(null);
    };
 
    const filteredDocs = documents.filter(doc => {
@@ -198,7 +229,7 @@ const Documents: React.FC = () => {
                                     <div className="flex items-center justify-end gap-1">
                                        {isPreviewable(doc) && (
                                           <button
-                                             onClick={() => setPreviewDoc(doc)}
+                                             onClick={() => openPreview(doc)}
                                              title="Preview"
                                              className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded transition-colors"
                                           >
@@ -206,7 +237,7 @@ const Documents: React.FC = () => {
                                           </button>
                                        )}
                                        <button
-                                          onClick={() => handleDownload(doc.id)}
+                                          onClick={() => handleDownload(doc)}
                                           title="Download"
                                           className="p-1.5 text-slate-400 hover:text-navy-900 hover:bg-slate-200 rounded transition-colors"
                                        >
@@ -327,30 +358,39 @@ const Documents: React.FC = () => {
                   <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
                      <h3 className="text-lg font-semibold text-navy-900">{previewDoc.name}</h3>
                      <button
-                        onClick={() => setPreviewDoc(null)}
+                        onClick={closePreview}
                         className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
                      >
                         <X size={20} />
                      </button>
                   </div>
-                  <div className="flex-1 overflow-auto p-4 bg-slate-100 flex items-center justify-center">
-                     {previewDoc.type?.toLowerCase() === 'pdf' ? (
-                        <iframe
-                           src={`${import.meta.env.VITE_API_URL || ''}${previewDoc.url}`}
-                           className="w-full h-[70vh] border-0 rounded-lg bg-white"
-                           title={previewDoc.name}
-                        />
+                  <div className="flex-1 overflow-auto p-4 bg-slate-100 flex items-center justify-center min-h-[400px]">
+                     {isPreviewLoading ? (
+                        <div className="flex flex-col items-center gap-3">
+                           <Loader2 className="animate-spin text-teal-600" size={32} />
+                           <p className="text-sm text-slate-500">Loading preview...</p>
+                        </div>
+                     ) : previewUrl ? (
+                        previewDoc.type?.toLowerCase() === 'pdf' ? (
+                           <iframe
+                              src={previewUrl}
+                              className="w-full h-[70vh] border-0 rounded-lg bg-white"
+                              title={previewDoc.name}
+                           />
+                        ) : (
+                           <img
+                              src={previewUrl}
+                              alt={previewDoc.name}
+                              className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                           />
+                        )
                      ) : (
-                        <img
-                           src={`${import.meta.env.VITE_API_URL || ''}${previewDoc.url}`}
-                           alt={previewDoc.name}
-                           className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
-                        />
+                        <p className="text-sm text-slate-500">Failed to load preview</p>
                      )}
                   </div>
                   <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
                      <button
-                        onClick={() => handleDownload(previewDoc.id)}
+                        onClick={() => handleDownload(previewDoc)}
                         className="flex items-center gap-2 px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                      >
                         <Download size={16} /> Download

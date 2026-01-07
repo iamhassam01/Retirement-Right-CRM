@@ -48,25 +48,18 @@ export const documentService = {
         return response.data;
     },
 
-    // Download document
-    download: async (id: string): Promise<void> => {
+    // Download document securely via authenticated API
+    // Filename is passed from frontend (we already have it) for reliability
+    download: async (id: string, filename: string): Promise<void> => {
         const response = await api.get(`/documents/${id}/download`, {
             responseType: 'blob'
         });
 
-        // Get filename from content-disposition header or fallback
-        const contentDisposition = response.headers['content-disposition'];
-        let filename = 'download';
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename="?(.+)"?/);
-            if (match) filename = match[1];
-        }
-
-        // Create download link
+        // Create download link with the filename passed from frontend
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', filename);
+        link.download = filename; // Use filename from frontend (more reliable)
         document.body.appendChild(link);
         link.click();
         link.remove();
