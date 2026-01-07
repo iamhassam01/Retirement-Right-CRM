@@ -26,6 +26,7 @@ import teamRoutes from './routes/team.routes';
 import settingsRoutes from './routes/settings.routes';
 import profileRoutes from './routes/profile.routes';
 import notificationRoutes from './routes/notifications.routes';
+import vapiRoutes from './routes/vapi.routes';
 
 // Import Middleware
 import { authenticateToken } from './middleware/auth.middleware';
@@ -91,6 +92,7 @@ app.use('/api/team', teamRoutes);  // Auth handled inside router - GET /availabi
 app.use('/api/settings', authenticateToken, settingsRoutes);
 app.use('/api/profile', profileRoutes);  // Auth handled inside router
 app.use('/api/notifications', notificationRoutes);  // Auth handled inside router
+app.use('/api/vapi', vapiRoutes); // Public endpoint for Vapi/n8n
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
