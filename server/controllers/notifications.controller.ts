@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 // Get all notifications for current user
 export const getNotifications = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { unreadOnly } = req.query;
 
         const where: any = { userId };
@@ -34,7 +34,7 @@ export const getNotifications = async (req: Request, res: Response) => {
 // Mark notification as read
 export const markAsRead = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { id } = req.params;
 
         const notification = await prisma.notification.updateMany({
@@ -52,7 +52,7 @@ export const markAsRead = async (req: Request, res: Response) => {
 // Mark all notifications as read
 export const markAllAsRead = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
 
         await prisma.notification.updateMany({
             where: { userId, isRead: false },
@@ -69,7 +69,7 @@ export const markAllAsRead = async (req: Request, res: Response) => {
 // Delete a notification
 export const deleteNotification = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const { id } = req.params;
 
         await prisma.notification.deleteMany({
