@@ -1,5 +1,5 @@
 import { saveAs } from 'file-saver';
-import mime from 'mime-types';
+import { getMimeType } from '../utils/fileTypes';
 import api from '../api/axios';
 
 export interface Document {
@@ -57,7 +57,7 @@ export const documentService = {
             responseType: 'blob'
         });
 
-        const type = mime.lookup(filename) || 'application/octet-stream';
+        const type = getMimeType(filename);
         const blob = new Blob([response.data], { type });
         saveAs(blob, filename);
     },

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import mime from 'mime-types';
+import { getMimeType } from '../utils/fileTypes';
 import { documentService, Document } from '../services/document.service';
 import api from '../api/axios';
 import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
@@ -105,7 +105,7 @@ const Documents: React.FC = () => {
             responseType: 'blob'
          });
          // Create blob URL for secure preview with dynamic mime type
-         const type = mime.lookup(doc.name) || 'application/octet-stream';
+         const type = getMimeType(doc.name);
          const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type }));
          setPreviewUrl(blobUrl);
       } catch (error) {
