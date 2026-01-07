@@ -51,6 +51,8 @@ app.use(helmet({
       connectSrc: ["'self'", "ws:", "wss:", "https:", "http:", "https://esm.sh", "https://*.esm.sh"],
       workerSrc: ["'self'", "blob:"],
       mediaSrc: ["'self'", "https://storage.vapi.ai", "https://*.vapi.ai", "blob:"],
+      frameSrc: ["'self'", "blob:"],
+      objectSrc: ["'self'", "blob:"],
       // DO NOT include upgrade-insecure-requests since we're running HTTP
       upgradeInsecureRequests: null,
     },

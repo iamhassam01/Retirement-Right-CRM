@@ -154,7 +154,14 @@ export const downloadDocument = async (req: Request, res: Response) => {
             return res.status(404).json({ error: 'File not found on server' });
         }
 
-        res.download(filePath, document.name);
+        res.download(filePath, document.name, (err) => {
+            if (err) {
+                console.error('Error sending file:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Failed to download document' });
+                }
+            }
+        });
     } catch (error) {
         console.error('Error downloading document:', error);
         res.status(500).json({ error: 'Failed to download document' });
