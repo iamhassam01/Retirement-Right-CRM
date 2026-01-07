@@ -313,14 +313,14 @@ const CalendarView: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
-              <select name="clientId" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <select name="clientId" defaultValue={editingEvent?.clientId || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                 <option value="">Select Client...</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Advisor</label>
-              <select name="advisorId" className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <select name="advisorId" defaultValue={editingEvent?.advisorId || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                 <option value="">Select Advisor...</option>
                 {advisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>

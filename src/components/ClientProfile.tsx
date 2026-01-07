@@ -215,8 +215,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 </span>
                 {clientData.riskProfile && (
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${clientData.riskProfile === 'Conservative' ? 'bg-blue-50 text-blue-700' :
-                      clientData.riskProfile === 'Moderate' ? 'bg-amber-50 text-amber-700' :
-                        'bg-rose-50 text-rose-700'
+                    clientData.riskProfile === 'Moderate' ? 'bg-amber-50 text-amber-700' :
+                      'bg-rose-50 text-rose-700'
                     }`}>
                     {clientData.riskProfile}
                   </span>
@@ -225,7 +225,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               <div className="flex items-center gap-6 text-sm text-slate-500">
                 <span className="flex items-center gap-1.5"><Mail size={14} /> {clientData.email}</span>
                 <span className="flex items-center gap-1.5"><Phone size={14} /> {clientData.phone}</span>
-                <span className="flex items-center gap-1.5"><Shield size={14} /> {clientData.advisor}</span>
+                <span className="flex items-center gap-1.5"><User size={14} /> {clientData.advisor || 'No advisor'}</span>
               </div>
               {clientData.tags && clientData.tags.length > 0 && (
                 <div className="flex items-center gap-2 mt-2">
@@ -558,10 +558,10 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             </select>
           </div>
           {clientData.phone && (
-            <p className="text-xs text-slate-500">📞 Client phone: {clientData.phone}</p>
+            <p className="text-xs text-slate-500"> Client phone: {clientData.phone}</p>
           )}
           {clientData.email && (
-            <p className="text-xs text-slate-500">📧 Client email: {clientData.email}</p>
+            <p className="text-xs text-slate-500"> Client email: {clientData.email}</p>
           )}
           <div className="pt-4 flex gap-3">
             <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isScheduling}>Cancel</button>

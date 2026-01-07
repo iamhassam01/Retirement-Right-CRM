@@ -12,6 +12,7 @@ interface EventResponse {
     type: string;
     clientId?: string;
     clientName?: string;
+    advisorId?: string;
     advisorName?: string;
     createdAt?: string;
 }
@@ -46,7 +47,9 @@ export const eventService = {
                 type: mapEventType(event.type),
                 start: startDate || new Date(),
                 end: endDate || new Date(),
+                clientId: event.clientId,
                 clientName: event.clientName,
+                advisorId: event.advisorId,
                 advisorName: event.advisorName,
                 createdAt: event.createdAt ? new Date(event.createdAt) : undefined
             };
@@ -126,7 +129,9 @@ export const eventService = {
                     type: mapEventType(event.type),
                     start: startDate || new Date(),
                     end: endDate || new Date(),
+                    clientId: event.clientId,
                     clientName: event.clientName,
+                    advisorId: event.advisorId,
                     advisorName: event.advisorName,
                     createdAt: event.createdAt ? new Date(event.createdAt) : undefined
                 };

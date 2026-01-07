@@ -90,7 +90,9 @@ export interface CalendarEvent {
   start: Date;
   end: Date;
   type: 'Meeting' | 'Call' | 'Workshop' | 'Personal';
+  clientId?: string;
   clientName?: string;
+  advisorId?: string;
   advisorName?: string;
   createdAt?: Date;
 }
