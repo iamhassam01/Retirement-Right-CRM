@@ -1,4 +1,3 @@
-import { saveAs } from 'file-saver';
 import { getMimeType } from '../utils/fileTypes';
 import api from '../api/axios';
 
@@ -59,7 +58,20 @@ export const documentService = {
 
         const type = getMimeType(filename);
         const blob = new Blob([response.data], { type });
-        saveAs(blob, filename);
+        const url = window.URL.createObjectURL(blob);
+
+        // Use native anchor tag to force filename
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }, 100);
     },
 
     // Delete document
