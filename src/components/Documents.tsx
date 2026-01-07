@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { documentService, Document } from '../services/document.service';
 import api from '../api/axios';
-import { Folder, FileText, Download, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
+import { Folder, FileText, MoreVertical, Search, UploadCloud, Loader2, Trash2, Eye, X } from 'lucide-react';
 import Modal from './Modal';
 
 const Documents: React.FC = () => {
@@ -228,13 +228,7 @@ const Documents: React.FC = () => {
                                              <Eye size={16} />
                                           </button>
                                        )}
-                                       <button
-                                          onClick={() => handleDownload(doc)}
-                                          title="Download"
-                                          className="p-1.5 text-slate-400 hover:text-navy-900 hover:bg-slate-200 rounded transition-colors"
-                                       >
-                                          <Download size={16} />
-                                       </button>
+
                                        <button
                                           onClick={() => openDeleteModal(doc)}
                                           title="Delete"
@@ -365,7 +359,7 @@ const Documents: React.FC = () => {
                      ) : previewUrl ? (
                         previewDoc.type?.toLowerCase() === 'pdf' ? (
                            <iframe
-                              src={previewUrl}
+                              src={`${previewUrl}#toolbar=0`}
                               className="w-full h-[70vh] border-0 rounded-lg bg-white"
                               title={previewDoc.name}
                            />
@@ -380,14 +374,7 @@ const Documents: React.FC = () => {
                         <p className="text-sm text-slate-500">Failed to load preview</p>
                      )}
                   </div>
-                  <div className="p-4 border-t border-slate-200 bg-white flex justify-end gap-3">
-                     <button
-                        onClick={() => handleDownload(previewDoc)}
-                        className="flex items-center gap-2 px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-                     >
-                        <Download size={16} /> Download
-                     </button>
-                  </div>
+
                </div>
             </div>
          )}
