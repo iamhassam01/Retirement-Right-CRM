@@ -52,12 +52,16 @@ const ActivityLog: React.FC = () => {
 
             // Add recent events/appointments
             eventsData.slice(0, 10).forEach((event: any) => {
+                // Use createdAt (when event was created) not start (when it's scheduled)
+                const createdTimestamp = event.createdAt
+                    ? (event.createdAt instanceof Date ? event.createdAt.toISOString() : event.createdAt)
+                    : new Date().toISOString();
                 combinedActivities.push({
                     id: `event-${event.id}`,
                     type: 'appointment',
                     title: event.title || 'Appointment',
                     description: `${event.type || 'Event'} scheduled`,
-                    timestamp: event.createdAt || new Date().toISOString(), // Use createdAt for "X mins ago"
+                    timestamp: createdTimestamp,
                     clientName: event.clientName
                 });
             });
@@ -114,19 +118,32 @@ const ActivityLog: React.FC = () => {
 
     const formatTime = (dateStr: string) => {
         try {
+            if (!dateStr) return 'Unknown';
             const date = new Date(dateStr);
-            if (isNaN(date.getTime())) return 'Recently';
+            if (isNaN(date.getTime())) {
+                console.warn('Invalid date:', dateStr);
+                return 'Unknown';
+            }
             const now = new Date();
             const diffMs = now.getTime() - date.getTime();
+
+            // Handle future dates
+            if (diffMs < 0) return 'Scheduled';
+
             const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins < 60) return `${Math.max(1, diffMins)} mins ago`;
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+
             const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `${diffHours} hours ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+
             const diffDays = Math.floor(diffHours / 24);
-            if (diffDays < 7) return `${diffDays} days ago`;
-            return date.toLocaleDateString();
-        } catch {
-            return 'Recently';
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (err) {
+            console.error('formatTime error:', err);
+            return 'Unknown';
         }
     };
 

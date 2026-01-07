@@ -13,6 +13,7 @@ interface EventResponse {
     clientId?: string;
     clientName?: string;
     advisorName?: string;
+    createdAt?: string;
 }
 
 // Helper to map API type to CalendarEvent type
@@ -46,7 +47,8 @@ export const eventService = {
                 start: startDate || new Date(),
                 end: endDate || new Date(),
                 clientName: event.clientName,
-                advisorName: event.advisorName
+                advisorName: event.advisorName,
+                createdAt: event.createdAt ? new Date(event.createdAt) : undefined
             };
         });
     },
@@ -125,7 +127,8 @@ export const eventService = {
                     start: startDate || new Date(),
                     end: endDate || new Date(),
                     clientName: event.clientName,
-                    advisorName: event.advisorName
+                    advisorName: event.advisorName,
+                    createdAt: event.createdAt ? new Date(event.createdAt) : undefined
                 };
             })
             .filter(event => event.start >= today)

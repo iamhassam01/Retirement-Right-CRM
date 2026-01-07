@@ -92,6 +92,7 @@ export interface CalendarEvent {
   type: 'Meeting' | 'Call' | 'Workshop' | 'Personal';
   clientName?: string;
   advisorName?: string;
+  createdAt?: Date;
 }
 
 export interface DocumentFile {
