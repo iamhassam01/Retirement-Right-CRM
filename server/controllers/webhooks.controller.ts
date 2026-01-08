@@ -32,34 +32,32 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
     }
 
     // Vapi sends different message types: "call-status-update", "end-of-call-report", etc.
-    // if (message?.type === 'end-of-call-report') { -- removed, now checked above
     const { call, analysis, transcript, recordingUrl, artifact } = message;
     const customerPhone = normalizePhone(call?.customer?.number || '');
     const callId = call?.id;
 
-    // Check for duplicate - prevent logging same call twice
-    if (callId) {
-      const existingActivity = await prisma.activity.findFirst({
-        where: {
-          description: { contains: callId }
-        }
+    console.log('Processing Vapi call:', { callId, customerPhone, hasAnalysis: !!analysis });
+
+    // 1. Try to find existing client/lead by normalized phone
+    // Fetch all clients and compare normalized phones (handles formatting differences)
+    let client: any = null;
+    if (customerPhone) {
+      const allClients = await prisma.client.findMany({
+        where: { phone: { not: null } },
+        select: { id: true, phone: true }
       });
-      if (existingActivity) {
-        console.log('Duplicate call detected, skipping:', callId);
-        return res.status(200).json({ received: true, duplicate: true });
+
+      // Find client with matching normalized phone
+      const matchedClient = allClients.find(c => normalizePhone(c.phone || '') === customerPhone);
+
+      if (matchedClient) {
+        // Fetch full client data
+        client = await prisma.client.findUnique({ where: { id: matchedClient.id } });
+        console.log('Found existing client/lead by phone:', client?.id, client?.name);
       }
     }
 
-    // 1. Try to find existing client by phone
-    let client = await prisma.client.findFirst({
-      where: {
-        phone: {
-          endsWith: customerPhone
-        }
-      }
-    });
-
-    // 2. If no client found, create a new Lead
+    // 2. If no client/lead found, create a new Lead
     if (!client && customerPhone) {
       client = await prisma.client.create({
         data: {
@@ -72,7 +70,23 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
       console.log('Created new Lead from unknown caller:', client.id);
     }
 
-    // 3. Create Activity Log linked to the client
+    // 3. Check for duplicate activity - only log ONE call per client in 2-minute window
+    if (client) {
+      const recentCallForThisClient = await prisma.activity.findFirst({
+        where: {
+          clientId: client.id,
+          type: 'call',
+          createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) }
+        }
+      });
+
+      if (recentCallForThisClient) {
+        console.log('Already logged a call for this client recently, skipping duplicate:', client.id);
+        return res.status(200).json({ received: true, duplicate: true, clientId: client.id });
+      }
+    }
+
+    // 4. Create Activity Log linked to the client
     if (client) {
       // Get messages from transcript or artifact.messages
       const rawMessages = Array.isArray(transcript) ? transcript : (artifact?.messages || []);
@@ -89,17 +103,15 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
       // Get recording URL - Vapi sends at message level, not call level
       const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
 
-      // DEBUG: Log recording URL sources
-      console.log('Recording URL Debug:', {
-        fromMessage: recordingUrl,
-        fromArtifact: artifact?.recordingUrl,
-        fromCall: call?.recordingUrl,
-        final: finalRecordingUrl
-      });
-
       // Get duration from message or calculate
       const duration = message.durationSeconds || call?.durationSeconds ||
         (message.durationMs ? Math.round(message.durationMs / 1000) : 0);
+
+      // Build description - use analysis summary or create meaningful fallback
+      const description = analysis?.summary ||
+        (normalizedTranscript.length > 0
+          ? `AI Call with ${normalizedTranscript.length} messages [${callId}]`
+          : `Vapi AI Call [${callId || 'unknown'}]`);
 
       await prisma.activity.create({
         data: {
@@ -107,7 +119,7 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
           type: 'call',
           subType: 'ai',
           direction: call?.type === 'outbound' ? 'outbound' : 'inbound',
-          description: analysis?.summary || `Vapi AI Call [${callId || 'unknown'}]`,
+          description,
           duration: duration ? `${duration}s` : undefined,
           status: 'Completed',
           aiAnalysis: analysis || null,
