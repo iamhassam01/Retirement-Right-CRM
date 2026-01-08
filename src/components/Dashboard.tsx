@@ -30,6 +30,16 @@ const safeFormatTime = (date: Date | string | undefined): string => {
   return isNaN(d.getTime()) ? '--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+// Format full date with day, month, year and time
+const formatFullDateTime = (date: Date | string | undefined): string => {
+  if (!date) return '';
+  try {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) +
+      ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } catch { return ''; }
+};
+
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => {
   const [stats, setStats] = useState<KPIData[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -48,9 +58,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
         ]);
         setStats(statsData);
         setTasks(tasksData);
-        // Filter: Appointments are Meeting/Call, Workshops are separate
-        setAppointments(eventsData.filter((e: CalendarEvent) => e.type !== 'Workshop'));
-        setWorkshops(eventsData.filter((e: CalendarEvent) => e.type === 'Workshop'));
+        // Filter: Only show events from TODAY onwards (not past)
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Start of today
+        const upcomingEvents = eventsData.filter((e: CalendarEvent) => new Date(e.start) >= now);
+        // Appointments are Meeting/Call, Workshops are separate
+        setAppointments(upcomingEvents.filter((e: CalendarEvent) => e.type !== 'Workshop'));
+        setWorkshops(upcomingEvents.filter((e: CalendarEvent) => e.type === 'Workshop'));
 
         // Fetch pipeline stats from clients
         try {
@@ -138,73 +152,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content Area - 2 Cols */}
+        {/* Main Content Area - 2 Cols: Appointments + Workshops */}
         <div className="lg:col-span-2 space-y-8">
 
-          {/* Today's Tasks */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="font-semibold text-navy-900">Priority Actions</h3>
-              <button
-                onClick={() => onNavigate('tasks')}
-                className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline"
-              >
-                View All
-              </button>
-            </div>
-            <div className="divide-y divide-slate-50">
-              {tasks.length > 0 ? (
-                tasks.slice(0, 5).map((task) => (
-                  <div key={task.id} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group animate-in slide-in-from-left-2 duration-300">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => handleCompleteTask(task.id)}
-                        className="text-slate-300 hover:text-emerald-500 hover:scale-110 transition-all"
-                        title="Mark as Complete"
-                      >
-                        <CheckCircle2 size={24} />
-                      </button>
-                      <div>
-                        <button
-                          onClick={() => {
-                            if (task.clientName) {
-                              onNavigate('clients');
-                            }
-                          }}
-                          className="text-sm font-medium text-navy-900 group-hover:text-teal-600 transition-colors text-left"
-                        >
-                          {task.title}
-                        </button>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${task.priority === 'High' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-600'
-                            }`}>
-                            {task.priority || 'Normal'}
-                          </span>
-                          {task.clientName && <span className="text-xs text-slate-400">• {task.clientName}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center text-xs text-slate-500 gap-2">
-                      <Clock size={14} />
-                      {task.due ? new Date(task.due).toLocaleDateString() : 'No due date'}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-8 text-center text-slate-400">
-                  <div className="inline-flex p-3 rounded-full bg-slate-50 mb-3">
-                    <CheckCircle2 size={24} className="text-emerald-500" />
-                  </div>
-                  <p className="text-sm">All priority tasks completed.</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upcoming Workshops/Events */}
+          {/* Upcoming Appointments - LARGE */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="font-semibold text-navy-900">Upcoming Appointments</h3>
+              <h3 className="font-semibold text-navy-900 flex items-center gap-2"><CalIcon size={18} /> Upcoming Appointments</h3>
               <button
                 onClick={() => onNavigate('calendar')}
                 className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline"
@@ -222,9 +176,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
                   <div className="flex-1">
                     <h4 className="font-medium text-navy-900">{event.title}</h4>
                     <p className="text-xs text-slate-500 mt-1">
-                      {event.type}
+                      {formatFullDateTime(event.start)}
                       {event.clientName && ` • ${event.clientName}`}
-                      {event.advisorName && ` • Advisor: ${event.advisorName}`}
                     </p>
                   </div>
                 </div>
@@ -235,37 +188,82 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
             </div>
           </div>
 
+          {/* Upcoming Workshops - LARGE */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-semibold text-navy-900 flex items-center gap-2"><CalIcon size={18} /> Upcoming Workshops</h3>
+              <button
+                onClick={() => onNavigate('workshops')}
+                className="text-sm text-teal-600 hover:text-teal-700 font-medium hover:underline"
+              >
+                View All
+              </button>
+            </div>
+            <div className="p-6 grid gap-4">
+              {workshops.slice(0, 3).map((wkshp) => (
+                <div key={wkshp.id} className="flex items-center p-4 border border-slate-100 rounded-lg hover:border-emerald-100 transition-all cursor-pointer" onClick={() => onNavigate('workshops')}>
+                  <div className="h-12 w-12 bg-emerald-50 rounded-lg flex flex-col items-center justify-center text-emerald-700 mr-4">
+                    <span className="text-[10px] font-bold uppercase">{safeFormatDate(wkshp.start, { month: 'short' })}</span>
+                    <span className="text-lg font-bold">{safeGetDate(wkshp.start)}</span>
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-navy-900">{wkshp.title}</h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {formatFullDateTime(wkshp.start)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {workshops.length === 0 && (
+                <p className="text-center text-slate-400 text-sm">No upcoming workshops.</p>
+              )}
+            </div>
+          </div>
+
         </div>
 
-        {/* Sidebar Area - 1 Col */}
+        {/* Sidebar Area - 1 Col: Priority Actions + Pipeline */}
         <div className="space-y-8">
 
-          {/* Upcoming Workshops Widget */}
+          {/* Priority Actions - SMALL sidebar widget */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-            <h3 className="font-semibold text-navy-900 mb-4 flex items-center gap-2">
-              <CalIcon size={18} /> Upcoming Workshops
-            </h3>
-            <div className="space-y-4">
-              {workshops.length > 0 ? workshops.slice(0, 3).map(wkshp => (
-                <div key={wkshp.id} className="flex gap-4 items-start relative pb-6 border-l-2 border-slate-100 pl-4 last:pb-0 last:border-0">
-                  <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-emerald-500 shadow-sm"></div>
-                  <div>
-                    <span className="text-xs font-semibold text-slate-400 block mb-1">
-                      {safeFormatDate(wkshp.start, { month: 'short', day: 'numeric' })}
-                    </span>
-                    <p className="text-sm font-medium text-navy-900">{wkshp.title}</p>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-navy-900 flex items-center gap-2">
+                <CheckCircle2 size={18} /> Priority Actions
+              </h3>
+              <button
+                onClick={() => onNavigate('tasks')}
+                className="text-xs text-teal-600 hover:text-teal-700 font-medium hover:underline"
+              >
+                View All
+              </button>
+            </div>
+            <div className="space-y-3">
+              {tasks.length > 0 ? tasks.slice(0, 3).map((task) => (
+                <div key={task.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                  <button
+                    onClick={() => handleCompleteTask(task.id)}
+                    className="text-slate-300 hover:text-emerald-500 mt-0.5"
+                  >
+                    <CheckCircle2 size={18} />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-navy-900 truncate">{task.title}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${task.priority === 'High' ? 'bg-rose-100 text-rose-600' : 'bg-slate-200 text-slate-500'}`}>
+                        {task.priority || 'Normal'}
+                      </span>
+                      {task.due && <span className="text-[10px] text-slate-400">{new Date(task.due).toLocaleDateString()}</span>}
+                    </div>
                   </div>
                 </div>
               )) : (
-                <p className="text-sm text-slate-400 text-center">No upcoming workshops</p>
+                <div className="text-center py-4 text-slate-400">
+                  <CheckCircle2 size={20} className="mx-auto mb-2 text-emerald-500" />
+                  <p className="text-xs">All tasks completed!</p>
+                </div>
               )}
             </div>
-            <button
-              onClick={() => onNavigate('workshops')}
-              className="w-full mt-6 py-2 text-sm font-medium text-slate-600 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-            >
-              View All Workshops
-            </button>
           </div>
 
           {/* Quick Stats / Mini Pipeline */}
