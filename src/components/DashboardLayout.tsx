@@ -370,7 +370,7 @@ const DashboardLayout: React.FC = () => {
                         name: formData.name,
                         email: formData.email,
                         phone: formData.phone,
-                        status: formData.clientStatus as 'Lead' | 'Prospect'
+                        status: formData.clientStatus as 'Active' | 'Lead' | 'Prospect'
                     });
                 } else if (quickAddType === 'task') {
                     await taskService.create({
@@ -488,6 +488,7 @@ const DashboardLayout: React.FC = () => {
                                 onChange={(e) => setFormData({ ...formData, clientStatus: e.target.value })}
                                 className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                             >
+                                <option value="Active">Active (Client)</option>
                                 <option value="Lead">Lead</option>
                                 <option value="Prospect">Prospect</option>
                             </select>

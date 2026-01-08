@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { clientService } from '../services/client.service';
 import { Client } from '../types';
-import { Search, Filter, Phone, Mail, ArrowRight, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Filter, Mail, ArrowRight, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import Modal from './Modal';
 
 interface LeadsProps {
@@ -184,15 +184,13 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
                            </p>
                         </div>
                         <div className="col-span-1 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                           <button className="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded">
-                              <Phone size={16} />
-                           </button>
                            <button
                               title="Convert to Client"
                               onClick={(e) => handleConvertClick(e, lead.id)}
-                              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded"
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors"
                            >
-                              <ArrowRight size={16} />
+                              <ArrowRight size={14} />
+                              Convert
                            </button>
                         </div>
                      </div>
