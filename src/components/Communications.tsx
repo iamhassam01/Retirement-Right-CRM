@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { automationService, Template, AutomationLog } from '../services/automation.service';
 import { clientService } from '../services/client.service';
 import { Mail, Plus, Clock, CheckCircle2, Loader2, Trash2, Send, Users, ChevronRight, AlertCircle, Edit2 } from 'lucide-react';
 import Modal from './Modal';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 
 interface Client {
   id: string;
@@ -36,6 +38,19 @@ const Communications: React.FC = () => {
   const [formSubject, setFormSubject] = useState('');
   const [formBody, setFormBody] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const quillRef = useRef<ReactQuill>(null);
+
+  // Quill editor config
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline'],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      ['link'],
+      ['clean']
+    ]
+  };
 
   // Automation Tab State
   const [step, setStep] = useState(1); // 1: Select Template, 2: Select Recipients, 3: Confirm & Send
@@ -122,7 +137,15 @@ const Communications: React.FC = () => {
   };
 
   const insertVariable = (variable: string) => {
-    setFormBody(prev => prev + variable);
+    const quill = quillRef.current?.getEditor();
+    if (quill) {
+      const selection = quill.getSelection();
+      const position = selection ? selection.index : quill.getLength();
+      quill.insertText(position, variable);
+      quill.setSelection(position + variable.length, 0);
+    } else {
+      setFormBody(prev => prev + variable);
+    }
   };
 
   // Client Selection
@@ -302,8 +325,8 @@ const Communications: React.FC = () => {
                         key={template.id}
                         onClick={() => { setSelectedTemplate(template); setStep(2); }}
                         className={`text-left p-4 rounded-xl border-2 transition-all ${selectedTemplate?.id === template.id
-                            ? 'border-teal-500 bg-teal-50'
-                            : 'border-slate-200 hover:border-teal-300 bg-white'
+                          ? 'border-teal-500 bg-teal-50'
+                          : 'border-slate-200 hover:border-teal-300 bg-white'
                           }`}
                       >
                         <div className="flex items-start justify-between">
@@ -387,8 +410,8 @@ const Communications: React.FC = () => {
                             <td className="px-4 py-3 text-sm text-slate-600">{client.email}</td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${client.status === 'Active' ? 'bg-emerald-50 text-emerald-700' :
-                                  client.status === 'Lead' ? 'bg-blue-50 text-blue-700' :
-                                    'bg-slate-100 text-slate-600'
+                                client.status === 'Lead' ? 'bg-blue-50 text-blue-700' :
+                                  'bg-slate-100 text-slate-600'
                                 }`}>
                                 {client.status}
                               </span>
@@ -463,9 +486,9 @@ const Communications: React.FC = () => {
                       <div key={log.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-100">
                         <div className="flex items-center gap-4">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${log.status === 'completed' ? 'bg-emerald-100 text-emerald-600' :
-                              log.status === 'partial' ? 'bg-amber-100 text-amber-600' :
-                                log.status === 'failed' ? 'bg-rose-100 text-rose-600' :
-                                  'bg-slate-200 text-slate-500'
+                            log.status === 'partial' ? 'bg-amber-100 text-amber-600' :
+                              log.status === 'failed' ? 'bg-rose-100 text-rose-600' :
+                                'bg-slate-200 text-slate-500'
                             }`}>
                             {log.status === 'completed' ? <CheckCircle2 size={16} /> :
                               log.status === 'sending' ? <Loader2 size={16} className="animate-spin" /> :
@@ -482,9 +505,9 @@ const Communications: React.FC = () => {
                             {formatDate(log.createdAt)}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${log.status === 'completed' ? 'bg-emerald-50 text-emerald-700' :
-                              log.status === 'partial' ? 'bg-amber-50 text-amber-700' :
-                                log.status === 'failed' ? 'bg-rose-50 text-rose-700' :
-                                  'bg-slate-100 text-slate-600'
+                            log.status === 'partial' ? 'bg-amber-50 text-amber-700' :
+                              log.status === 'failed' ? 'bg-rose-50 text-rose-700' :
+                                'bg-slate-100 text-slate-600'
                             }`}>
                             {log.status}
                           </span>
@@ -525,12 +548,19 @@ const Communications: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Body Content</label>
-              <textarea
-                value={formBody}
-                onChange={(e) => setFormBody(e.target.value)}
-                className="w-full h-48 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm font-mono"
-                placeholder="Dear {{client_name}},&#10;&#10;Your content here..."
-              />
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <ReactQuill
+                  ref={quillRef}
+                  theme="snow"
+                  value={formBody}
+                  onChange={setFormBody}
+                  modules={quillModules}
+                  placeholder="Dear {{client_name}},..."
+                  className="bg-white"
+                  style={{ minHeight: '200px' }}
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1">Use variables from the panel on the right</p>
             </div>
           </div>
 
