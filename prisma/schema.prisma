@@ -188,7 +188,8 @@ model Template {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  logs        CommunicationLog[]
+  logs           CommunicationLog[]
+  automationLogs AutomationLog[] @relation("AutomationLogs")
 }
 
 // --- Communication Logs ---
@@ -202,6 +203,20 @@ model CommunicationLog {
   status      String    // "Delivered", "Opened", "Replied", "Failed"
   sentAt      DateTime  @default(now())
   metadata    Json?
+}
+
+// --- Automation Batch Logs ---
+model AutomationLog {
+  id             String    @id @default(uuid())
+  templateId     String
+  template       Template  @relation(fields: [templateId], references: [id], name: "AutomationLogs")
+  recipientCount Int
+  sentCount      Int       @default(0)
+  failedCount    Int       @default(0)
+  status         String    @default("pending") // pending, sending, completed, partial, failed
+  errorDetails   Json?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
 }
 
 // --- Notifications ---
