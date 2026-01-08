@@ -10,6 +10,7 @@ interface Client {
   id: string;
   name: string;
   email: string | null;
+  phone: string | null;
   status: string;
   advisorId?: string;
 }
@@ -183,7 +184,8 @@ const Communications: React.FC = () => {
           clientId: c.id,
           email: c.email!,
           client_name: c.name,
-          first_name: c.name.split(' ')[0]
+          first_name: c.name.split(' ')[0],
+          phone: c.phone || ''
         }));
 
       const result = await automationService.sendEmails(selectedTemplate.id, recipients);
