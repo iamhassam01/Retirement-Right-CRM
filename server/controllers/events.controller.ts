@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { createNotification } from './notifications.controller';
+import { broadcastNotification } from './notifications.controller';
 
 const prisma = new PrismaClient();
 
@@ -54,7 +54,7 @@ export const getEvents = async (req: Request, res: Response) => {
 export const createEvent = async (req: Request, res: Response) => {
     try {
         const { title, start, end, type, clientId, advisorId } = req.body;
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = (req as any).user?.id;
 
         console.log('Creating event:', { title, start, type, clientId, advisorId, currentUserId });
 
@@ -73,18 +73,15 @@ export const createEvent = async (req: Request, res: Response) => {
             }
         });
 
-        // Create notification for new appointment
-        if (currentUserId) {
-            const clientName = event.client?.name || 'a client';
-            const eventDate = new Date(start).toLocaleDateString();
-            await createNotification(
-                currentUserId,
-                'appointment',
-                'New Appointment Scheduled',
-                `${title} with ${clientName} on ${eventDate}`,
-                `/calendar`
-            );
-        }
+        // Broadcast notification for new appointment to all advisors
+        const clientName = event.client?.name || 'a client';
+        const eventDate = new Date(start).toLocaleDateString();
+        await broadcastNotification(
+            'appointment',
+            'New Appointment Scheduled',
+            `${title} with ${clientName} on ${eventDate}`,
+            `/calendar`
+        );
 
         res.json(event);
     } catch (error) {

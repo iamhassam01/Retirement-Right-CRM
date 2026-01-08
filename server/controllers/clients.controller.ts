@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { createNotification } from './notifications.controller';
+import { createNotification, broadcastNotification } from './notifications.controller';
 
 const prisma = new PrismaClient();
 
@@ -43,7 +43,7 @@ export const getClientById = async (req: Request, res: Response) => {
 // --- Create Client (or Lead) ---
 export const createClient = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.userId;
+        const userId = (req as any).user?.id;
         const data = req.body;
         const newClient = await prisma.client.create({
             data: {
@@ -53,16 +53,13 @@ export const createClient = async (req: Request, res: Response) => {
             }
         });
 
-        // Create notification for new lead/client
-        if (userId) {
-            await createNotification(
-                userId,
-                'new_lead',
-                'New Lead Added',
-                `${newClient.name} has been added to your pipeline.`,
-                `/clients/${newClient.id}`
-            );
-        }
+        // Broadcast notification for new lead/client to all advisors
+        await broadcastNotification(
+            'new_lead',
+            data.status === 'Active' ? 'New Client Added' : 'New Lead Added',
+            `${newClient.name} has been added to the pipeline.`,
+            `/clients/${newClient.id}`
+        );
 
         res.json(newClient);
     } catch (error) {
@@ -76,6 +73,12 @@ export const updateClient = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updates = req.body;
 
+        // Get current client to check if status is changing
+        const currentClient = await prisma.client.findUnique({ where: { id } });
+        const isConverting = currentClient &&
+            (currentClient.status === 'Lead' || currentClient.status === 'Prospect') &&
+            updates.status === 'Active';
+
         // Auto-update pipeline stage if status becomes Active
         if (updates.status === 'Active' || updates.status === 'Client') {
             updates.pipelineStage = 'Client Onboarded';
@@ -85,6 +88,17 @@ export const updateClient = async (req: Request, res: Response) => {
             where: { id },
             data: updates
         });
+
+        // Broadcast conversion notification to all advisors
+        if (isConverting) {
+            await broadcastNotification(
+                'conversion',
+                'Lead Converted to Client',
+                `${client.name} has been promoted to an active client!`,
+                `/clients/${client.id}`
+            );
+        }
+
         res.json(client);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update client' });

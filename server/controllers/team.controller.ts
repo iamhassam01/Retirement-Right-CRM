@@ -134,7 +134,7 @@ export const updateTeamMember = async (req: Request, res: Response) => {
 export const deleteTeamMember = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const currentUserId = (req as any).user?.userId;
+        const currentUserId = (req as any).user?.id;
 
         // Prevent self-deletion
         if (id === currentUserId) {

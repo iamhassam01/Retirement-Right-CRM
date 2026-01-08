@@ -101,6 +101,39 @@ export const createNotification = async (
     }
 };
 
+// Broadcast notification to all advisors (for system-wide events)
+export const broadcastNotification = async (
+    type: string,
+    title: string,
+    message: string,
+    link?: string
+) => {
+    try {
+        // Get all advisors and admins
+        const advisors = await prisma.user.findMany({
+            where: {
+                role: { in: ['ADVISOR', 'ADMIN'] }
+            },
+            select: { id: true }
+        });
+
+        // Create notification for each advisor
+        const notifications = await Promise.all(
+            advisors.map(advisor =>
+                prisma.notification.create({
+                    data: { userId: advisor.id, type, title, message, link }
+                })
+            )
+        );
+
+        console.log(`Broadcast notification sent to ${notifications.length} advisors: ${title}`);
+        return notifications;
+    } catch (error) {
+        console.error('Error broadcasting notification:', error);
+        return [];
+    }
+};
+
 // API endpoint to create notification (for testing/admin)
 export const createNotificationAPI = async (req: Request, res: Response) => {
     try {
