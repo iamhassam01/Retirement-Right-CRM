@@ -6,27 +6,6 @@ import fs from 'fs';
 import * as XLSX from 'xlsx';
 
 const prisma = new PrismaClient();
-// ... (rest of file)
-
-// ... inside uploadPreview ...
-        } else if (ext === '.xlsx' || ext === '.xls') {
-    try {
-        const workbook = XLSX.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
-
-        if (data.length > 0) {
-            headers = data[0].map(h => String(h || ''));
-            rows = data.slice(1).map(row => row.map(cell => String(cell || '')));
-        }
-    } catch (xlsxError) {
-        console.error('XLSX parsing error:', xlsxError);
-        return res.status(400).json({
-            error: 'Failed to parse XLSX file.'
-        });
-    }
-}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -170,14 +149,21 @@ export const uploadPreview = async (req: Request, res: Response) => {
             headers = parsed.headers;
             rows = parsed.rows;
         } else if (ext === '.xlsx' || ext === '.xls') {
-            // For XLSX, we'll need the xlsx package - for now return error
-            // Note: xlsx package should be installed: npm install xlsx
             try {
-                const XLSX = require('xlsx');
-                const workbook = XLSX.readFile(filePath);
+                // Handle various ESM/CJS import structures for xlsx
+                const xlsxModule = XLSX as any;
+                const readFile = xlsxModule.readFile || xlsxModule.default?.readFile;
+                const utils = xlsxModule.utils || xlsxModule.default?.utils;
+
+                if (!readFile || !utils) {
+                    console.error('XLSX module structure:', Object.keys(xlsxModule));
+                    throw new Error('XLSX module functions not found');
+                }
+
+                const workbook = readFile(filePath);
                 const sheetName = workbook.SheetNames[0];
                 const sheet = workbook.Sheets[sheetName];
-                const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
+                const data = utils.sheet_to_json(sheet, { header: 1 }) as string[][];
 
                 if (data.length > 0) {
                     headers = data[0].map(h => String(h || ''));
@@ -186,7 +172,7 @@ export const uploadPreview = async (req: Request, res: Response) => {
             } catch (xlsxError) {
                 console.error('XLSX parsing error:', xlsxError);
                 return res.status(400).json({
-                    error: 'Failed to parse XLSX file. Make sure xlsx package is installed.'
+                    error: 'Failed to parse XLSX file.'
                 });
             }
         }
