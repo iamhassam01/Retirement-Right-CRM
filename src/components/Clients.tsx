@@ -107,7 +107,7 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
    const [pageSize, setPageSize] = useState(10);
    const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
    const [copiedId, setCopiedId] = useState<string | null>(null);
-   const [sortField, setSortField] = useState<'name' | 'clientId'>('name');
+   const [sortField, setSortField] = useState<'name' | 'clientId' | 'lastContact'>('name');
    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
    const { isMobile, isTablet, isDesktop } = useResponsiveView();
@@ -155,15 +155,27 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
       const matchesStatus = filterStatus === 'all' || c.status === filterStatus;
       return matchesSearch && matchesHealth && matchesRisk && matchesStatus;
    }).sort((a, b) => {
-      const aValue = sortField === 'name' ? a.name : (a.clientId || '');
-      const bValue = sortField === 'name' ? b.name : (b.clientId || '');
+      if (sortField === 'clientId') {
+         const aId = parseInt((a.clientId || '').replace(/\D/g, '')) || 0;
+         const bId = parseInt((b.clientId || '').replace(/\D/g, '')) || 0;
+         return sortDirection === 'asc' ? aId - bId : bId - aId;
+      }
+
+      if (sortField === 'lastContact') {
+         const aDate = new Date(a.lastContact || 0).getTime();
+         const bDate = new Date(b.lastContact || 0).getTime();
+         return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+
+      const aValue = a.name;
+      const bValue = b.name;
 
       if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
    });
 
-   const handleSort = (field: 'name' | 'clientId') => {
+   const handleSort = (field: 'name' | 'clientId' | 'lastContact') => {
       if (sortField === field) {
          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
@@ -375,7 +387,12 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
                            <div className="col-span-2">Email</div>
                            <div className="col-span-2">Phone</div>
                            <div className="col-span-2">Status</div>
-                           <div className="col-span-2">Last Contact</div>
+                           <div
+                              className="col-span-2 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                              onClick={() => handleSort('lastContact')}
+                           >
+                              Last Contact {sortField === 'lastContact' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                           </div>
                            <div className="col-span-1 text-right"></div>
                         </div>
 

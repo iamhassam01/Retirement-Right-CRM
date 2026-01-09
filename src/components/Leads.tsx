@@ -18,7 +18,7 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
    const [filterStage, setFilterStage] = useState<string>('all');
    const [currentPage, setCurrentPage] = useState(1);
    const [pageSize, setPageSize] = useState(10);
-   const [sortField, setSortField] = useState<'name' | 'status'>('name');
+   const [sortField, setSortField] = useState<'name' | 'status' | 'lastContact'>('name');
    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
    useEffect(() => {
@@ -68,6 +68,12 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
       const matchesStage = filterStage === 'all' || l.pipelineStage === filterStage;
       return matchesSearch && matchesStatus && matchesStage;
    }).sort((a, b) => {
+      if (sortField === 'lastContact') {
+         const aDate = new Date(a.lastContact || 0).getTime();
+         const bDate = new Date(b.lastContact || 0).getTime();
+         return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+      }
+
       const aValue = sortField === 'name' ? a.name : (a.status || '');
       const bValue = sortField === 'name' ? b.name : (b.status || '');
 
@@ -76,7 +82,7 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
       return 0;
    });
 
-   const handleSort = (field: 'name' | 'status') => {
+   const handleSort = (field: 'name' | 'status' | 'lastContact') => {
       if (sortField === field) {
          setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
       } else {
@@ -84,6 +90,11 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
          setSortDirection('asc');
       }
    };
+
+   // ... existing code ...
+
+   // Update Header in Table View inside return statement (need to verify line numbers for this replace, better to split if large gap)
+   // Splitting replacement for safety. This block handles filter logic + sort function + handleSort definition.
 
    // Pagination calculations
    const totalPages = Math.ceil(filteredLeads.length / pageSize);
@@ -165,7 +176,12 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
                   Status {sortField === 'status' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
                </div>
                <div className="col-span-3">Phone</div>
-               <div className="col-span-2">Last Contact</div>
+               <div
+                  className="col-span-2 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                  onClick={() => handleSort('lastContact')}
+               >
+                  Last Contact {sortField === 'lastContact' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+               </div>
                <div className="col-span-1 text-right">Actions</div>
             </div>
 
