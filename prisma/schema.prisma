@@ -109,7 +109,7 @@ model ClientPhone {
   clientId  String
   client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   number    String
-  type      PhoneType @default(MOBILE)
+  type      PhoneType @default(CELLULAR)
   label     String?   // Custom label like "Main Office"
   isPrimary Boolean   @default(false)
   createdAt DateTime  @default(now())
