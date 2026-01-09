@@ -254,6 +254,22 @@ export const executeImport = async (req: Request, res: Response) => {
         let skippedCount = 0;
         const errors: { row: number; message: string }[] = [];
 
+        // --- PRE-FETCH LAST CLIENT ID ---
+        const lastClient = await prisma.client.findFirst({
+            where: { clientId: { startsWith: 'CL-' } },
+            orderBy: { clientId: 'desc' },
+            select: { clientId: true }
+        });
+
+        let nextIdNumber = 1;
+        if (lastClient?.clientId) {
+            const match = lastClient.clientId.match(/CL-(\d+)/);
+            if (match) {
+                nextIdNumber = parseInt(match[1], 10) + 1;
+            }
+        }
+        // --------------------------------
+
         // Process each row
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
@@ -353,7 +369,11 @@ export const executeImport = async (req: Request, res: Response) => {
                 }
 
                 // Create new client
-                const clientId = clientIdValue || await generateClientId();
+                let clientId = clientIdValue;
+                if (!clientId) {
+                    clientId = `CL-${nextIdNumber.toString().padStart(4, '0')}`;
+                    nextIdNumber++; // Increment locally
+                }
 
                 const newClient = await prisma.client.create({
                     data: {
@@ -382,8 +402,7 @@ export const executeImport = async (req: Request, res: Response) => {
                 errorCount++;
             }
         }
-
-        // Update job with results
+        // ...       // Update job with results
         await prisma.importJob.update({
             where: { id: jobId },
             data: {
