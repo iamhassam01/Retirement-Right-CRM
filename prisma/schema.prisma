@@ -39,7 +39,7 @@ enum Role {
 // --- Clients & Leads ---
 model Client {
   id            String  @id @default(uuid())
-  clientId      String  @unique // Human-readable ID (e.g., CL-0001)
+  clientId      String? @unique // Human-readable ID (e.g., CL-0001), optional for backwards compat
   name          String
   email         String? @map("legacy_email") // Deprecated, kept for migration
   phone         String? @map("legacy_phone") // Deprecated, kept for migration

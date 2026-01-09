@@ -178,8 +178,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                         {[1, 2, 3, 4, 5].map(s => (
                             <React.Fragment key={s}>
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${s < step ? 'bg-teal-600 text-white' :
-                                        s === step ? 'bg-teal-600 text-white ring-4 ring-teal-100' :
-                                            'bg-slate-200 text-slate-500'
+                                    s === step ? 'bg-teal-600 text-white ring-4 ring-teal-100' :
+                                        'bg-slate-200 text-slate-500'
                                     }`}>
                                     {s < step ? <Check size={16} /> : s}
                                 </div>
@@ -206,8 +206,8 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                 onDragLeave={() => setIsDragging(false)}
                                 onDrop={handleDrop}
                                 className={`border-2 border-dashed rounded-xl p-12 text-center transition-all ${isDragging ? 'border-teal-500 bg-teal-50' :
-                                        selectedFile ? 'border-emerald-500 bg-emerald-50' :
-                                            'border-slate-300 hover:border-teal-400'
+                                    selectedFile ? 'border-emerald-500 bg-emerald-50' :
+                                        'border-slate-300 hover:border-teal-400'
                                     }`}
                             >
                                 <input
@@ -243,13 +243,38 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
 
                             <div className="flex items-center justify-between text-sm text-slate-500">
                                 <span>Supported: CSV, XLSX • Max: 10MB • Max rows: 10,000</span>
-                                <button
-                                    onClick={() => importService.downloadTemplate('csv')}
-                                    className="flex items-center gap-1 text-teal-600 hover:text-teal-700"
-                                >
-                                    <Download size={14} />
-                                    Download Template
-                                </button>
+                            </div>
+
+                            {/* Visual Template Preview */}
+                            <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                                <p className="text-xs font-bold text-slate-500 uppercase mb-2">Expected Format</p>
+                                <div className="overflow-x-auto">
+                                    <table className="text-xs w-full">
+                                        <thead>
+                                            <tr className="bg-slate-200">
+                                                <th className="px-2 py-1 text-left font-medium text-slate-700">Name</th>
+                                                <th className="px-2 py-1 text-left font-medium text-slate-700">Email</th>
+                                                <th className="px-2 py-1 text-left font-medium text-slate-700">Phone</th>
+                                                <th className="px-2 py-1 text-left font-medium text-slate-700">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr className="border-b border-slate-200">
+                                                <td className="px-2 py-1 text-slate-600">John Smith</td>
+                                                <td className="px-2 py-1 text-slate-600">john@email.com</td>
+                                                <td className="px-2 py-1 text-slate-600">(555) 123-4567</td>
+                                                <td className="px-2 py-1 text-slate-600">Lead</td>
+                                            </tr>
+                                            <tr>
+                                                <td className="px-2 py-1 text-slate-600">Jane Doe</td>
+                                                <td className="px-2 py-1 text-slate-600">jane@email.com</td>
+                                                <td className="px-2 py-1 text-slate-600">(555) 987-6543</td>
+                                                <td className="px-2 py-1 text-slate-600">Prospect</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p className="text-xs text-slate-400 mt-2">Columns are auto-detected • Name column is required</p>
                             </div>
                         </div>
                     )}
@@ -456,7 +481,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                     {step === 5 && importResult && (
                         <div className="space-y-6 text-center">
                             <div className={`w-20 h-20 mx-auto rounded-full flex items-center justify-center ${importResult.errorCount === 0 ? 'bg-emerald-100' :
-                                    importResult.successCount > 0 ? 'bg-amber-100' : 'bg-red-100'
+                                importResult.successCount > 0 ? 'bg-amber-100' : 'bg-red-100'
                                 }`}>
                                 {importResult.errorCount === 0 ? (
                                     <Check size={40} className="text-emerald-600" />
