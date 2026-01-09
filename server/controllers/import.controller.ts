@@ -3,8 +3,30 @@ import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import * as XLSX from 'xlsx';
 
 const prisma = new PrismaClient();
+// ... (rest of file)
+
+// ... inside uploadPreview ...
+        } else if (ext === '.xlsx' || ext === '.xls') {
+    try {
+        const workbook = XLSX.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as string[][];
+
+        if (data.length > 0) {
+            headers = data[0].map(h => String(h || ''));
+            rows = data.slice(1).map(row => row.map(cell => String(cell || '')));
+        }
+    } catch (xlsxError) {
+        console.error('XLSX parsing error:', xlsxError);
+        return res.status(400).json({
+            error: 'Failed to parse XLSX file.'
+        });
+    }
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
