@@ -18,14 +18,17 @@ const TARGET_FIELDS = [
     { value: 'skip', label: '-- Skip --' },
     { value: 'name', label: 'Name (Required)' },
     { value: 'client_id', label: 'Client ID' },
-    { value: 'primary_email', label: 'Primary Email' },
-    { value: 'additional_email', label: 'Additional Email' },
+    // Email fields matching user's data
     { value: 'home_email', label: 'Home Email' },
+    { value: 'home_email_2', label: 'Home Email 2' },
     { value: 'work_email', label: 'Work Email' },
-    { value: 'primary_phone', label: 'Primary Phone' },
-    { value: 'additional_phone', label: 'Additional Phone' },
+    { value: 'personal_email', label: 'Personal Email' },
+    { value: 'other_email', label: 'Other Email' },
+    // Phone fields matching user's data
     { value: 'home_phone', label: 'Home Phone' },
     { value: 'work_phone', label: 'Work Phone' },
+    { value: 'cellular_phone', label: 'Cellular Phone' },
+    { value: 'other_phone', label: 'Other Phone' },
     { value: 'status', label: 'Status' },
     { value: 'tags', label: 'Tags' }
 ];

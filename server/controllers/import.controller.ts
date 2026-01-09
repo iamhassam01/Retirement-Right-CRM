@@ -293,32 +293,41 @@ export const executeImport = async (req: Request, res: Response) => {
                     continue;
                 }
 
-                const primaryEmail = getValue('primary_email');
-                const additionalEmail = getValue('additional_email');
+                // Extract all email fields
                 const homeEmail = getValue('home_email');
+                const homeEmail2 = getValue('home_email_2');
                 const workEmail = getValue('work_email');
-                const primaryPhone = getValue('primary_phone');
-                const additionalPhone = getValue('additional_phone');
+                const personalEmail = getValue('personal_email');
+                const otherEmail = getValue('other_email');
+
+                // Extract all phone fields
                 const homePhone = getValue('home_phone');
                 const workPhone = getValue('work_phone');
+                const cellularPhone = getValue('cellular_phone');
+                const otherPhone = getValue('other_phone');
+
                 const clientIdValue = getValue('client_id');
                 // Default to 'Active' so they appear in Clients list immediately
                 const status = getValue('status') || 'Active';
 
+                // Use first available email for duplicate check
+                const primaryEmailForCheck = homeEmail || personalEmail || workEmail || otherEmail || homeEmail2;
+                const primaryPhoneForCheck = cellularPhone || homePhone || workPhone || otherPhone;
+
                 // Check for duplicates using both email and phone
                 let existingClient = null;
-                if (primaryEmail) {
+                if (primaryEmailForCheck) {
                     existingClient = await prisma.client.findFirst({
                         where: {
                             OR: [
-                                { email: primaryEmail },
-                                { emails: { some: { email: primaryEmail } } }
+                                { email: primaryEmailForCheck },
+                                { emails: { some: { email: primaryEmailForCheck } } }
                             ]
                         }
                     });
                 }
-                if (!existingClient && primaryPhone) {
-                    const normalizedPhone = primaryPhone.replace(/\D/g, '');
+                if (!existingClient && primaryPhoneForCheck) {
+                    const normalizedPhone = primaryPhoneForCheck.replace(/\D/g, '');
                     existingClient = await prisma.client.findFirst({
                         where: {
                             OR: [
@@ -345,26 +354,6 @@ export const executeImport = async (req: Request, res: Response) => {
                                     status
                                 }
                             });
-
-                            // Add new contact info if provided and not duplicate
-                            if (additionalPhone) {
-                                const phoneExists = await prisma.clientPhone.findFirst({
-                                    where: {
-                                        clientId: existingClient.id,
-                                        number: additionalPhone
-                                    }
-                                });
-                                if (!phoneExists) {
-                                    await prisma.clientPhone.create({
-                                        data: {
-                                            clientId: existingClient.id,
-                                            number: additionalPhone,
-                                            type: 'WORK',
-                                            isPrimary: false
-                                        }
-                                    });
-                                }
-                            }
                             successCount++;
                             continue;
 
@@ -381,19 +370,20 @@ export const executeImport = async (req: Request, res: Response) => {
                     nextIdNumber++; // Increment locally
                 }
 
-                // Build phone records array
+                // Build phone records array with correct enum values
                 const phoneRecords = [];
-                if (primaryPhone) phoneRecords.push({ number: primaryPhone, type: 'MOBILE' as const, isPrimary: true });
-                if (additionalPhone) phoneRecords.push({ number: additionalPhone, type: 'WORK' as const, isPrimary: false });
-                if (homePhone) phoneRecords.push({ number: homePhone, type: 'HOME' as const, isPrimary: false });
-                if (workPhone) phoneRecords.push({ number: workPhone, type: 'WORK' as const, isPrimary: false });
+                if (homePhone) phoneRecords.push({ number: homePhone, type: 'HOME' as const, isPrimary: phoneRecords.length === 0 });
+                if (workPhone) phoneRecords.push({ number: workPhone, type: 'WORK' as const, isPrimary: phoneRecords.length === 0 });
+                if (cellularPhone) phoneRecords.push({ number: cellularPhone, type: 'CELLULAR' as const, isPrimary: phoneRecords.length === 0 });
+                if (otherPhone) phoneRecords.push({ number: otherPhone, type: 'OTHER' as const, isPrimary: phoneRecords.length === 0 });
 
-                // Build email records array
+                // Build email records array with correct enum values
                 const emailRecords = [];
-                if (primaryEmail) emailRecords.push({ email: primaryEmail, type: 'PERSONAL' as const, isPrimary: true });
-                if (additionalEmail) emailRecords.push({ email: additionalEmail, type: 'OTHER' as const, isPrimary: false });
-                if (homeEmail) emailRecords.push({ email: homeEmail, type: 'HOME' as const, isPrimary: false });
-                if (workEmail) emailRecords.push({ email: workEmail, type: 'WORK' as const, isPrimary: false });
+                if (homeEmail) emailRecords.push({ email: homeEmail, type: 'HOME' as const, isPrimary: emailRecords.length === 0 });
+                if (homeEmail2) emailRecords.push({ email: homeEmail2, type: 'HOME2' as const, isPrimary: emailRecords.length === 0 });
+                if (workEmail) emailRecords.push({ email: workEmail, type: 'WORK' as const, isPrimary: emailRecords.length === 0 });
+                if (personalEmail) emailRecords.push({ email: personalEmail, type: 'PERSONAL' as const, isPrimary: emailRecords.length === 0 });
+                if (otherEmail) emailRecords.push({ email: otherEmail, type: 'OTHER' as const, isPrimary: emailRecords.length === 0 });
 
                 const newClient = await prisma.client.create({
                     data: {

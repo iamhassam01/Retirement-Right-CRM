@@ -20,17 +20,17 @@ interface ClientProfileProps {
 
 // Phone/Email Type Labels
 const PHONE_TYPE_LABELS: Record<PhoneType, string> = {
-  'MOBILE': 'Mobile',
-  'WORK': 'Work',
   'HOME': 'Home',
-  'FAX': 'Fax',
+  'WORK': 'Work',
+  'CELLULAR': 'Cellular',
   'OTHER': 'Other'
 };
 
 const EMAIL_TYPE_LABELS: Record<EmailType, string> = {
-  'PERSONAL': 'Personal',
-  'WORK': 'Work',
   'HOME': 'Home',
+  'HOME2': 'Home 2',
+  'WORK': 'Work',
+  'PERSONAL': 'Personal',
   'OTHER': 'Other'
 };
 
@@ -69,7 +69,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   // Phone/Email Form State
   const [phoneForm, setPhoneForm] = useState<{ number: string; type: PhoneType; label: string; isPrimary: boolean; editId?: string }>({
     number: '',
-    type: 'MOBILE',
+    type: 'CELLULAR',
     label: '',
     isPrimary: false
   });
@@ -226,7 +226,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
       setTimeout(() => {
         setIsPhoneModalOpen(false);
         setContactSaveStatus('idle');
-        setPhoneForm({ number: '', type: 'MOBILE', label: '', isPrimary: false });
+        setPhoneForm({ number: '', type: 'CELLULAR', label: '', isPrimary: false });
       }, 1000);
     } catch (error) {
       console.error('Save phone failed:', error);
@@ -499,7 +499,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                   </h3>
                   <button
                     onClick={() => {
-                      setPhoneForm({ number: '', type: 'MOBILE', label: '', isPrimary: false });
+                      setPhoneForm({ number: '', type: 'CELLULAR', label: '', isPrimary: false });
                       setIsPhoneModalOpen(true);
                     }}
                     className="flex items-center gap-1 px-3 py-1.5 bg-teal-50 text-teal-700 rounded-lg text-sm font-medium hover:bg-teal-100 transition-colors"
@@ -816,10 +816,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 onChange={(e) => setPhoneForm(prev => ({ ...prev, type: e.target.value as PhoneType }))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
               >
-                <option value="MOBILE">Mobile</option>
-                <option value="WORK">Work</option>
                 <option value="HOME">Home</option>
-                <option value="FAX">Fax</option>
+                <option value="WORK">Work</option>
+                <option value="CELLULAR">Cellular</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>
@@ -874,9 +873,10 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 onChange={(e) => setEmailForm(prev => ({ ...prev, type: e.target.value as EmailType }))}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
               >
-                <option value="PERSONAL">Personal</option>
-                <option value="WORK">Work</option>
                 <option value="HOME">Home</option>
+                <option value="HOME2">Home 2</option>
+                <option value="WORK">Work</option>
+                <option value="PERSONAL">Personal</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>

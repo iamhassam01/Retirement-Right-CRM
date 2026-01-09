@@ -40,8 +40,8 @@ export interface Activity {
 }
 
 // --- Phone & Email Types ---
-export type PhoneType = 'MOBILE' | 'WORK' | 'HOME' | 'FAX' | 'OTHER';
-export type EmailType = 'PERSONAL' | 'WORK' | 'HOME' | 'OTHER';
+export type PhoneType = 'HOME' | 'WORK' | 'CELLULAR' | 'OTHER';
+export type EmailType = 'HOME' | 'HOME2' | 'WORK' | 'PERSONAL' | 'OTHER';
 
 export interface ClientPhone {
   id: string;

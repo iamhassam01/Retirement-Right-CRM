@@ -88,18 +88,18 @@ model Client {
 
 // --- Phone Type Enumeration ---
 enum PhoneType {
-  MOBILE
-  WORK
   HOME
-  FAX
+  WORK
+  CELLULAR
   OTHER
 }
 
 // --- Email Type Enumeration ---
 enum EmailType {
-  PERSONAL
-  WORK
   HOME
+  HOME2
+  WORK
+  PERSONAL
   OTHER
 }
 
