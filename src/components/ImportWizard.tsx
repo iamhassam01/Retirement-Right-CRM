@@ -19,8 +19,13 @@ const TARGET_FIELDS = [
     { value: 'name', label: 'Name (Required)' },
     { value: 'client_id', label: 'Client ID' },
     { value: 'primary_email', label: 'Primary Email' },
+    { value: 'additional_email', label: 'Additional Email' },
+    { value: 'home_email', label: 'Home Email' },
+    { value: 'work_email', label: 'Work Email' },
     { value: 'primary_phone', label: 'Primary Phone' },
     { value: 'additional_phone', label: 'Additional Phone' },
+    { value: 'home_phone', label: 'Home Phone' },
+    { value: 'work_phone', label: 'Work Phone' },
     { value: 'status', label: 'Status' },
     { value: 'tags', label: 'Tags' }
 ];

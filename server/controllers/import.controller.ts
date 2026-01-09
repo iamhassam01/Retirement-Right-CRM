@@ -294,8 +294,13 @@ export const executeImport = async (req: Request, res: Response) => {
                 }
 
                 const primaryEmail = getValue('primary_email');
+                const additionalEmail = getValue('additional_email');
+                const homeEmail = getValue('home_email');
+                const workEmail = getValue('work_email');
                 const primaryPhone = getValue('primary_phone');
                 const additionalPhone = getValue('additional_phone');
+                const homePhone = getValue('home_phone');
+                const workPhone = getValue('work_phone');
                 const clientIdValue = getValue('client_id');
                 // Default to 'Active' so they appear in Clients list immediately
                 const status = getValue('status') || 'Active';
@@ -376,23 +381,28 @@ export const executeImport = async (req: Request, res: Response) => {
                     nextIdNumber++; // Increment locally
                 }
 
+                // Build phone records array
+                const phoneRecords = [];
+                if (primaryPhone) phoneRecords.push({ number: primaryPhone, type: 'MOBILE' as const, isPrimary: true });
+                if (additionalPhone) phoneRecords.push({ number: additionalPhone, type: 'WORK' as const, isPrimary: false });
+                if (homePhone) phoneRecords.push({ number: homePhone, type: 'HOME' as const, isPrimary: false });
+                if (workPhone) phoneRecords.push({ number: workPhone, type: 'WORK' as const, isPrimary: false });
+
+                // Build email records array
+                const emailRecords = [];
+                if (primaryEmail) emailRecords.push({ email: primaryEmail, type: 'PERSONAL' as const, isPrimary: true });
+                if (additionalEmail) emailRecords.push({ email: additionalEmail, type: 'OTHER' as const, isPrimary: false });
+                if (homeEmail) emailRecords.push({ email: homeEmail, type: 'HOME' as const, isPrimary: false });
+                if (workEmail) emailRecords.push({ email: workEmail, type: 'WORK' as const, isPrimary: false });
+
                 const newClient = await prisma.client.create({
                     data: {
                         clientId,
                         name: name.trim(),
                         status,
                         pipelineStage: 'Client Onboarded',
-                        phones: primaryPhone ? {
-                            create: [
-                                { number: primaryPhone, type: 'MOBILE', isPrimary: true },
-                                ...(additionalPhone ? [{ number: additionalPhone, type: 'WORK' as const, isPrimary: false }] : [])
-                            ]
-                        } : undefined,
-                        emails: primaryEmail ? {
-                            create: [
-                                { email: primaryEmail, type: 'PERSONAL', isPrimary: true }
-                            ]
-                        } : undefined
+                        phones: phoneRecords.length > 0 ? { create: phoneRecords } : undefined,
+                        emails: emailRecords.length > 0 ? { create: emailRecords } : undefined
                     }
                 });
 

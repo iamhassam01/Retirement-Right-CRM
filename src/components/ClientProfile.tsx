@@ -60,6 +60,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
     pipelineStage: initialClient.pipelineStage || '',
     aum: initialClient.aum || 0,
     riskProfile: initialClient.riskProfile || '',
+    advisorId: initialClient.advisorId || '',
     tags: initialClient.tags?.join(', ') || ''
   });
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -751,6 +752,19 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 <option value="Conservative">Conservative</option>
                 <option value="Moderate">Moderate</option>
                 <option value="Aggressive">Aggressive</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Assigned Advisor</label>
+              <select
+                value={editForm.advisorId}
+                onChange={(e) => setEditForm(prev => ({ ...prev, advisorId: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+              >
+                <option value="">-- None --</option>
+                {advisors.map((advisor) => (
+                  <option key={advisor.id} value={advisor.id}>{advisor.name}</option>
+                ))}
               </select>
             </div>
             <div className="col-span-2">
