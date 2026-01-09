@@ -41,7 +41,7 @@ export interface Activity {
 
 // --- Phone & Email Types ---
 export type PhoneType = 'MOBILE' | 'WORK' | 'HOME' | 'FAX' | 'OTHER';
-export type EmailType = 'PERSONAL' | 'WORK' | 'OTHER';
+export type EmailType = 'PERSONAL' | 'WORK' | 'HOME' | 'OTHER';
 
 export interface ClientPhone {
   id: string;

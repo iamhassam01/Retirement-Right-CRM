@@ -30,6 +30,7 @@ const PHONE_TYPE_LABELS: Record<PhoneType, string> = {
 const EMAIL_TYPE_LABELS: Record<EmailType, string> = {
   'PERSONAL': 'Personal',
   'WORK': 'Work',
+  'HOME': 'Home',
   'OTHER': 'Other'
 };
 
@@ -409,8 +410,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 </span>
                 {clientData.riskProfile && (
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${clientData.riskProfile === 'Conservative' ? 'bg-blue-50 text-blue-700' :
-                      clientData.riskProfile === 'Moderate' ? 'bg-amber-50 text-amber-700' :
-                        'bg-rose-50 text-rose-700'
+                    clientData.riskProfile === 'Moderate' ? 'bg-amber-50 text-amber-700' :
+                      'bg-rose-50 text-rose-700'
                     }`}>
                     {clientData.riskProfile}
                   </span>
@@ -653,7 +654,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                         <td className="px-6 py-4 text-sm text-slate-500">{doc.size}</td>
                         <td className="px-6 py-4">
                           <button
-                            onClick={() => documentService.download(doc.id)}
+                            onClick={() => documentService.download(doc.id, doc.name)}
                             className="text-teal-600 hover:text-teal-700 text-sm"
                           >
                             <Download size={16} />
@@ -768,8 +769,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             onClick={handleSaveClient}
             disabled={saveStatus !== 'idle'}
             className={`w-full py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${saveStatus === 'success' ? 'bg-emerald-600 text-white' :
-                saveStatus === 'error' ? 'bg-red-600 text-white' :
-                  'bg-teal-600 text-white hover:bg-teal-700'
+              saveStatus === 'error' ? 'bg-red-600 text-white' :
+                'bg-teal-600 text-white hover:bg-teal-700'
               }`}
           >
             {saveStatus === 'idle' && <><Save size={16} /> Save Changes</>}
@@ -861,6 +862,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               >
                 <option value="PERSONAL">Personal</option>
                 <option value="WORK">Work</option>
+                <option value="HOME">Home</option>
                 <option value="OTHER">Other</option>
               </select>
             </div>
@@ -917,8 +919,8 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
               onClick={handleUploadDocument}
               disabled={uploadStatus !== 'idle'}
               className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${uploadStatus === 'success' ? 'bg-emerald-600 text-white' :
-                  uploadStatus === 'error' ? 'bg-red-600 text-white' :
-                    'bg-teal-600 text-white hover:bg-teal-700'
+                uploadStatus === 'error' ? 'bg-red-600 text-white' :
+                  'bg-teal-600 text-white hover:bg-teal-700'
                 }`}
             >
               {uploadStatus === 'idle' && 'Upload'}

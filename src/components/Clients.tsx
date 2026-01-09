@@ -5,7 +5,7 @@ import {
    Search, Filter, ArrowUpRight, ArrowDownRight, MoreHorizontal,
    ShieldCheck, AlertTriangle, Loader2, ChevronLeft, ChevronRight,
    ChevronsLeft, ChevronsRight, Copy, Check, Phone, Mail,
-   LayoutGrid, List, Upload
+   LayoutGrid, List, Upload, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { useResponsiveView } from '../hooks/useMediaQuery';
 
@@ -107,6 +107,8 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
    const [pageSize, setPageSize] = useState(10);
    const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
    const [copiedId, setCopiedId] = useState<string | null>(null);
+   const [sortField, setSortField] = useState<'name' | 'clientId'>('name');
+   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
    const { isMobile, isTablet, isDesktop } = useResponsiveView();
 
@@ -152,7 +154,23 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
       const matchesRisk = filterRisk === 'all' || c.riskProfile === filterRisk;
       const matchesStatus = filterStatus === 'all' || c.status === filterStatus;
       return matchesSearch && matchesHealth && matchesRisk && matchesStatus;
+   }).sort((a, b) => {
+      const aValue = sortField === 'name' ? a.name : (a.clientId || '');
+      const bValue = sortField === 'name' ? b.name : (b.clientId || '');
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
    });
+
+   const handleSort = (field: 'name' | 'clientId') => {
+      if (sortField === field) {
+         setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+         setSortField(field);
+         setSortDirection('asc');
+      }
+   };
 
    // Pagination calculations
    const totalPages = Math.ceil(filteredClients.length / pageSize);
@@ -342,8 +360,18 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
                   <div className="overflow-x-auto">
                      <div className="min-w-[800px]">
                         <div className="grid grid-cols-12 bg-slate-50 p-4 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide sticky top-0">
-                           <div className="col-span-1">ID</div>
-                           <div className="col-span-2">Name</div>
+                           <div
+                              className="col-span-1 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                              onClick={() => handleSort('clientId')}
+                           >
+                              ID {sortField === 'clientId' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                           </div>
+                           <div
+                              className="col-span-2 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                              onClick={() => handleSort('name')}
+                           >
+                              Name {sortField === 'name' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                           </div>
                            <div className="col-span-2">Email</div>
                            <div className="col-span-2">Phone</div>
                            <div className="col-span-2">Status</div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { clientService } from '../services/client.service';
 import { Client } from '../types';
-import { Search, Filter, Mail, ArrowRight, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Filter, Mail, ArrowRight, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ArrowUp, ArrowDown } from 'lucide-react';
 import Modal from './Modal';
 
 interface LeadsProps {
@@ -18,6 +18,8 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
    const [filterStage, setFilterStage] = useState<string>('all');
    const [currentPage, setCurrentPage] = useState(1);
    const [pageSize, setPageSize] = useState(10);
+   const [sortField, setSortField] = useState<'name' | 'status'>('name');
+   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
    useEffect(() => {
       const fetchLeads = async () => {
@@ -65,7 +67,23 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
       const matchesStatus = filterStatus === 'all' || l.status === filterStatus;
       const matchesStage = filterStage === 'all' || l.pipelineStage === filterStage;
       return matchesSearch && matchesStatus && matchesStage;
+   }).sort((a, b) => {
+      const aValue = sortField === 'name' ? a.name : (a.status || '');
+      const bValue = sortField === 'name' ? b.name : (b.status || '');
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
    });
+
+   const handleSort = (field: 'name' | 'status') => {
+      if (sortField === field) {
+         setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      } else {
+         setSortField(field);
+         setSortDirection('asc');
+      }
+   };
 
    // Pagination calculations
    const totalPages = Math.ceil(filteredLeads.length / pageSize);
@@ -134,8 +152,18 @@ const Leads: React.FC<LeadsProps> = ({ onSelectClient }) => {
 
             {/* Table Header */}
             <div className="grid grid-cols-12 bg-slate-50 p-4 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-               <div className="col-span-4">Name & Contact</div>
-               <div className="col-span-2">Status</div>
+               <div
+                  className="col-span-4 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                  onClick={() => handleSort('name')}
+               >
+                  Name & Contact {sortField === 'name' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+               </div>
+               <div
+                  className="col-span-2 cursor-pointer hover:text-navy-900 flex items-center gap-1"
+                  onClick={() => handleSort('status')}
+               >
+                  Status {sortField === 'status' && (sortDirection === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+               </div>
                <div className="col-span-3">Phone</div>
                <div className="col-span-2">Last Contact</div>
                <div className="col-span-1 text-right">Actions</div>

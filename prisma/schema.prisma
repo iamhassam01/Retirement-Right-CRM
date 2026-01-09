@@ -99,6 +99,7 @@ enum PhoneType {
 enum EmailType {
   PERSONAL
   WORK
+  HOME
   OTHER
 }
 

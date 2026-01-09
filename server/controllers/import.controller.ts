@@ -381,7 +381,7 @@ export const executeImport = async (req: Request, res: Response) => {
                         clientId,
                         name: name.trim(),
                         status,
-                        pipelineStage: 'New Lead',
+                        pipelineStage: 'Client Onboarded',
                         phones: primaryPhone ? {
                             create: [
                                 { number: primaryPhone, type: 'MOBILE', isPrimary: true },
