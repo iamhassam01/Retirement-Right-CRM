@@ -297,7 +297,8 @@ export const executeImport = async (req: Request, res: Response) => {
                 const primaryPhone = getValue('primary_phone');
                 const additionalPhone = getValue('additional_phone');
                 const clientIdValue = getValue('client_id');
-                const status = getValue('status') || 'Lead';
+                // Default to 'Active' so they appear in Clients list immediately
+                const status = getValue('status') || 'Active';
 
                 // Check for duplicates using both email and phone
                 let existingClient = null;
