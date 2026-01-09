@@ -39,9 +39,10 @@ enum Role {
 // --- Clients & Leads ---
 model Client {
   id            String  @id @default(uuid())
+  clientId      String  @unique // Human-readable ID (e.g., CL-0001)
   name          String
-  email         String?
-  phone         String?
+  email         String? @map("legacy_email") // Deprecated, kept for migration
+  phone         String? @map("legacy_phone") // Deprecated, kept for migration
   status        String // e.g., "Active", "Prospect", "Lead"
   pipelineStage String? // e.g., "New Lead", "Contacted"
 
@@ -81,6 +82,70 @@ model Client {
   tasks      Task[]
   documents  Document[]
   communicationLogs CommunicationLog[]
+  phones     ClientPhone[]
+  emails     ClientEmail[]
+}
+
+// --- Phone Type Enumeration ---
+enum PhoneType {
+  MOBILE
+  WORK
+  HOME
+  FAX
+  OTHER
+}
+
+// --- Email Type Enumeration ---
+enum EmailType {
+  PERSONAL
+  WORK
+  OTHER
+}
+
+// --- Multiple Phone Numbers per Client ---
+model ClientPhone {
+  id        String    @id @default(uuid())
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  number    String
+  type      PhoneType @default(MOBILE)
+  label     String?   // Custom label like "Main Office"
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([clientId])
+}
+
+// --- Multiple Email Addresses per Client ---
+model ClientEmail {
+  id        String    @id @default(uuid())
+  clientId  String
+  client    Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  email     String
+  type      EmailType @default(PERSONAL)
+  label     String?   // Custom label
+  isPrimary Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([clientId])
+}
+
+// --- Import Job Tracking ---
+model ImportJob {
+  id             String    @id @default(uuid())
+  filename       String
+  totalRecords   Int
+  processedCount Int       @default(0)
+  successCount   Int       @default(0)
+  errorCount     Int       @default(0)
+  skippedCount   Int       @default(0)
+  status         String    @default("pending") // pending, processing, completed, failed
+  errors         Json?     // Array of error objects
+  mappings       Json?     // Column mappings used
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
 }
 
 // --- Activities (Calls, Emails, AI Logs) ---

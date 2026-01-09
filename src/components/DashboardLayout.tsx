@@ -6,6 +6,7 @@ import Pipeline from './Pipeline';
 import Workshops from './Workshops';
 import Leads from './Leads';
 import Clients from './Clients';
+import ImportWizard from './ImportWizard';
 import CalendarView from './CalendarView';
 import Documents from './Documents';
 import Reports from './Reports';
@@ -46,6 +47,7 @@ const DashboardLayout: React.FC = () => {
     }>({ clients: [], events: [], workshops: [] });
     const [isSearching, setIsSearching] = useState(false);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+    const [isImportOpen, setIsImportOpen] = useState(false);
     const { user } = useAuth();
 
     // Load client data when selectedClientId changes
@@ -189,7 +191,7 @@ const DashboardLayout: React.FC = () => {
             case 'leads':
                 return <Leads onSelectClient={setSelectedClientId} />;
             case 'clients':
-                return <Clients onSelectClient={setSelectedClientId} />;
+                return <Clients onSelectClient={setSelectedClientId} onOpenImport={() => setIsImportOpen(true)} />;
             case 'calendar':
                 return <CalendarView />;
             case 'documents':
@@ -855,6 +857,18 @@ const DashboardLayout: React.FC = () => {
             >
                 <QuickAddForm />
             </Modal>
+
+            <ImportWizard
+                isOpen={isImportOpen}
+                onClose={() => setIsImportOpen(false)}
+                onComplete={() => {
+                    // Refresh client list when import completes
+                    if (currentView === 'clients') {
+                        setCurrentView('dashboard');
+                        setTimeout(() => setCurrentView('clients'), 100);
+                    }
+                }}
+            />
         </div>
     );
 };
