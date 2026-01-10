@@ -138,8 +138,8 @@ const Clients: React.FC<ClientsProps> = ({ onSelectClient, onOpenImport }) => {
 
    const filteredClients = clients.filter(c => {
       const search = searchTerm.toLowerCase();
-      const primaryPhone = c.phones?.find(p => p.isPrimary)?.number || c.phones?.[0]?.number || c.phone;
-      const primaryEmail = c.emails?.find(e => e.isPrimary)?.email || c.emails?.[0]?.email || c.email;
+      const primaryPhone = c.phones?.find(p => p.type === 'CELLULAR')?.number || c.phones?.find(p => p.isPrimary)?.number || c.phones?.[0]?.number || c.phone;
+      const primaryEmail = c.emails?.find(e => e.type === 'HOME')?.email || c.emails?.find(e => e.isPrimary)?.email || c.emails?.[0]?.email || c.email;
 
       const matchesSearch = (
          c.name.toLowerCase().includes(search) ||

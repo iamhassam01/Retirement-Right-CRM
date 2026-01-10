@@ -314,16 +314,33 @@ export const executeImport = async (req: Request, res: Response) => {
                 const primaryEmailForCheck = homeEmail || personalEmail || workEmail || otherEmail || homeEmail2;
                 const primaryPhoneForCheck = cellularPhone || homePhone || workPhone || otherPhone;
 
-                // Check for duplicates using both email and phone
+                // Check for duplicates using Client ID first (most reliable)
                 let existingClient = null;
-                if (primaryEmailForCheck) {
+                if (clientIdValue) {
+                    existingClient = await prisma.client.findUnique({
+                        where: { clientId: clientIdValue },
+                        include: { phones: true, emails: true }
+                    });
+                }
+
+                // If not found by ID, check by Name (exact match)
+                if (!existingClient && name) {
+                    existingClient = await prisma.client.findFirst({
+                        where: { name: { equals: name.trim(), mode: 'insensitive' } },
+                        include: { phones: true, emails: true }
+                    });
+                }
+
+                // Check for duplicates using both email and phone
+                if (!existingClient && primaryEmailForCheck) {
                     existingClient = await prisma.client.findFirst({
                         where: {
                             OR: [
                                 { email: primaryEmailForCheck },
                                 { emails: { some: { email: primaryEmailForCheck } } }
                             ]
-                        }
+                        },
+                        include: { phones: true, emails: true }
                     });
                 }
                 if (!existingClient && primaryPhoneForCheck) {
@@ -334,9 +351,26 @@ export const executeImport = async (req: Request, res: Response) => {
                                 { phone: { contains: normalizedPhone } },
                                 { phones: { some: { number: { contains: normalizedPhone } } } }
                             ]
-                        }
+                        },
+                        include: { phones: true, emails: true }
                     });
                 }
+
+                // Build records to add
+                // Phones: Prioritize CELLULAR
+                const newPhones: any[] = [];
+                if (cellularPhone) newPhones.push({ number: cellularPhone, type: 'CELLULAR' as const });
+                if (homePhone) newPhones.push({ number: homePhone, type: 'HOME' as const });
+                if (workPhone) newPhones.push({ number: workPhone, type: 'WORK' as const });
+                if (otherPhone) newPhones.push({ number: otherPhone, type: 'OTHER' as const });
+
+                // Emails
+                const newEmails: any[] = [];
+                if (homeEmail) newEmails.push({ email: homeEmail, type: 'HOME' as const });
+                if (homeEmail2) newEmails.push({ email: homeEmail2, type: 'HOME2' as const });
+                if (workEmail) newEmails.push({ email: workEmail, type: 'WORK' as const });
+                if (personalEmail) newEmails.push({ email: personalEmail, type: 'PERSONAL' as const });
+                if (otherEmail) newEmails.push({ email: otherEmail, type: 'OTHER' as const });
 
                 if (existingClient) {
                     // Handle duplicate based on strategy
@@ -346,12 +380,30 @@ export const executeImport = async (req: Request, res: Response) => {
                             continue;
 
                         case 'update':
+                            // Merge Phones (avoid duplicates)
+                            const phonesToCreate = newPhones.filter(np =>
+                                !existingClient!.phones?.some((ep: any) => ep.number === np.number)
+                            ).map(p => ({
+                                ...p,
+                                isPrimary: (existingClient!.phones?.length || 0) === 0 && p.type === 'CELLULAR'
+                            }));
+
+                            // Merge Emails (avoid duplicates)
+                            const emailsToCreate = newEmails.filter(ne =>
+                                !existingClient!.emails?.some((ee: any) => ee.email === ne.email)
+                            ).map(e => ({
+                                ...e,
+                                isPrimary: (existingClient!.emails?.length || 0) === 0 && e.type === 'HOME'
+                            }));
+
                             // Update existing client
                             await prisma.client.update({
                                 where: { id: existingClient.id },
                                 data: {
                                     name: name.trim(),
-                                    status
+                                    status,
+                                    phones: phonesToCreate.length > 0 ? { create: phonesToCreate } : undefined,
+                                    emails: emailsToCreate.length > 0 ? { create: emailsToCreate } : undefined
                                 }
                             });
                             successCount++;
@@ -363,27 +415,22 @@ export const executeImport = async (req: Request, res: Response) => {
                     }
                 }
 
-                // Create new client
+                // Create new client logic
                 let clientId = clientIdValue;
                 if (!clientId) {
                     clientId = `CL-${nextIdNumber.toString().padStart(4, '0')}`;
                     nextIdNumber++; // Increment locally
                 }
 
-                // Build phone records array with correct enum values
-                const phoneRecords = [];
-                if (homePhone) phoneRecords.push({ number: homePhone, type: 'HOME' as const, isPrimary: phoneRecords.length === 0 });
-                if (workPhone) phoneRecords.push({ number: workPhone, type: 'WORK' as const, isPrimary: phoneRecords.length === 0 });
-                if (cellularPhone) phoneRecords.push({ number: cellularPhone, type: 'CELLULAR' as const, isPrimary: phoneRecords.length === 0 });
-                if (otherPhone) phoneRecords.push({ number: otherPhone, type: 'OTHER' as const, isPrimary: phoneRecords.length === 0 });
+                const createPhones = newPhones.map((p, idx) => ({
+                    ...p,
+                    isPrimary: idx === 0 // First one (Cellular if present) is primary
+                }));
 
-                // Build email records array with correct enum values
-                const emailRecords = [];
-                if (homeEmail) emailRecords.push({ email: homeEmail, type: 'HOME' as const, isPrimary: emailRecords.length === 0 });
-                if (homeEmail2) emailRecords.push({ email: homeEmail2, type: 'HOME2' as const, isPrimary: emailRecords.length === 0 });
-                if (workEmail) emailRecords.push({ email: workEmail, type: 'WORK' as const, isPrimary: emailRecords.length === 0 });
-                if (personalEmail) emailRecords.push({ email: personalEmail, type: 'PERSONAL' as const, isPrimary: emailRecords.length === 0 });
-                if (otherEmail) emailRecords.push({ email: otherEmail, type: 'OTHER' as const, isPrimary: emailRecords.length === 0 });
+                const createEmails = newEmails.map((e, idx) => ({
+                    ...e,
+                    isPrimary: idx === 0 // First one (Home if present) is primary
+                }));
 
                 const newClient = await prisma.client.create({
                     data: {
@@ -391,8 +438,8 @@ export const executeImport = async (req: Request, res: Response) => {
                         name: name.trim(),
                         status,
                         pipelineStage: 'Client Onboarded',
-                        phones: phoneRecords.length > 0 ? { create: phoneRecords } : undefined,
-                        emails: emailRecords.length > 0 ? { create: emailRecords } : undefined
+                        phones: createPhones.length > 0 ? { create: createPhones } : undefined,
+                        emails: createEmails.length > 0 ? { create: createEmails } : undefined
                     }
                 });
 
