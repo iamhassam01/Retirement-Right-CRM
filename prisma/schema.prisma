@@ -28,6 +28,7 @@ model User {
   tasks   Task[]
   events  Event[]
   notifications Notification[]
+  notes   Note[]   // Notes authored by this user
 }
 
 enum Role {
@@ -84,6 +85,7 @@ model Client {
   communicationLogs CommunicationLog[]
   phones     ClientPhone[]
   emails     ClientEmail[]
+  notes      Note[]    // Notes for this client
 }
 
 // --- Phone Type Enumeration ---
@@ -296,4 +298,24 @@ model Notification {
   link      String?  // Optional link to navigate to
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+// --- Client Notes ---
+model Note {
+  id        String   @id @default(uuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  
+  title     String?
+  content   String
+  category  String?  // "General", "Meeting", "Call", "Financial", "Personal"
+  isPinned  Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([clientId])
 }

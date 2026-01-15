@@ -5,11 +5,12 @@ import { clientService } from '../services/client.service';
 import { eventService } from '../services/event.service';
 import { teamService, TeamMember } from '../services/team.service';
 import { documentService, Document } from '../services/document.service';
+import { noteService, Note } from '../services/note.service';
 import {
   Phone, Mail, Calendar, FileText, Shield, ChevronRight,
   MessageSquare, Mic, Play, Bot, ChevronDown, ChevronUp, Download,
   Loader2, Volume2, UploadCloud, Edit2, Save, DollarSign, User,
-  Copy, Check, Plus, Trash2, Star, X
+  Copy, Check, Plus, Trash2, Star, X, Pin, StickyNote, Search
 } from 'lucide-react';
 import Modal from './Modal';
 
@@ -40,6 +41,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   const [clientData, setClientData] = useState<Client>(initialClient);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(false);
 
@@ -51,6 +53,13 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
+
+  // Notes State
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [noteForm, setNoteForm] = useState({ title: '', content: '', category: 'General' });
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteSaveStatus, setNoteSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [noteSearch, setNoteSearch] = useState('');
 
   // Edit Form State
   const [editForm, setEditForm] = useState({
@@ -106,6 +115,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
   const tabs = [
     { id: 'history', label: 'History' },
+    { id: 'notes', label: 'Notes' },
     { id: 'contacts', label: 'Contacts' },
     { id: 'docs', label: 'Documents' }
   ];
@@ -113,16 +123,18 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [activitiesData, docsData, clientDetails] = await Promise.all([
+        const [activitiesData, docsData, clientDetails, notesData] = await Promise.all([
           activityService.getByClient(initialClient.id),
           documentService.getAll(undefined, initialClient.id),
-          clientService.getById(initialClient.id)
+          clientService.getById(initialClient.id),
+          noteService.getByClient(initialClient.id)
         ]);
         setActivities(activitiesData);
         setDocuments(docsData);
         if (clientDetails) {
           setClientData(clientDetails);
         }
+        setNotes(notesData);
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -499,6 +511,156 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 {activities.map((activity) => (
                   <RenderAiCall key={activity.id} activity={activity} />
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notes Tab */}
+        {activeTab === 'notes' && (
+          <div className="max-w-4xl mx-auto animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-navy-900">Client Notes</h2>
+                <p className="text-slate-500 text-sm">Keep track of important information and conversations.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search notes..."
+                    value={noteSearch}
+                    onChange={(e) => setNoteSearch(e.target.value)}
+                    className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none w-48"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    setNoteForm({ title: '', content: '', category: 'General' });
+                    setEditingNoteId(null);
+                    setIsNoteModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+                >
+                  <Plus size={16} /> Add Note
+                </button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="animate-spin text-navy-900" size={32} />
+              </div>
+            ) : notes.filter(n =>
+              n.title?.toLowerCase().includes(noteSearch.toLowerCase()) ||
+              n.content.toLowerCase().includes(noteSearch.toLowerCase())
+            ).length === 0 ? (
+              <div className="text-center py-16 bg-gradient-to-br from-slate-50 to-white rounded-2xl border border-slate-100">
+                <div className="w-16 h-16 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <StickyNote size={28} className="text-teal-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-navy-900 mb-2">No notes yet</h3>
+                <p className="text-slate-500 text-sm mb-4">Start documenting important client information.</p>
+                <button
+                  onClick={() => {
+                    setNoteForm({ title: '', content: '', category: 'General' });
+                    setEditingNoteId(null);
+                    setIsNoteModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors"
+                >
+                  <Plus size={16} /> Create First Note
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {notes
+                  .filter(n => n.title?.toLowerCase().includes(noteSearch.toLowerCase()) || n.content.toLowerCase().includes(noteSearch.toLowerCase()))
+                  .map((note) => {
+                    const categoryColors: Record<string, string> = {
+                      'General': 'bg-slate-100 text-slate-600',
+                      'Meeting': 'bg-blue-100 text-blue-700',
+                      'Call': 'bg-amber-100 text-amber-700',
+                      'Financial': 'bg-emerald-100 text-emerald-700',
+                      'Personal': 'bg-purple-100 text-purple-700'
+                    };
+                    const timeDiff = (Date.now() - new Date(note.createdAt).getTime()) / 1000;
+                    let timeAgo = '';
+                    if (timeDiff < 3600) timeAgo = `${Math.floor(timeDiff / 60)}m ago`;
+                    else if (timeDiff < 86400) timeAgo = `${Math.floor(timeDiff / 3600)}h ago`;
+                    else if (timeDiff < 604800) timeAgo = `${Math.floor(timeDiff / 86400)}d ago`;
+                    else timeAgo = new Date(note.createdAt).toLocaleDateString();
+
+                    return (
+                      <div
+                        key={note.id}
+                        className={`group relative rounded-xl border bg-white p-5 transition-all duration-200 hover:shadow-md ${note.isPinned ? 'border-amber-200 bg-amber-50/30 ring-1 ring-amber-100' : 'border-slate-200 hover:border-teal-200'
+                          }`}
+                      >
+                        {note.isPinned && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
+                            <Pin size={12} className="text-white" />
+                          </div>
+                        )}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              {note.title && <h4 className="font-semibold text-navy-900">{note.title}</h4>}
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${categoryColors[note.category || 'General'] || categoryColors['General']}`}>
+                                {note.category || 'General'}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 text-sm whitespace-pre-wrap">{note.content}</p>
+                            <div className="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                              <span>{note.author?.name || 'Unknown'}</span>
+                              <span>•</span>
+                              <span>{timeAgo}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={async () => {
+                                const updated = await noteService.togglePin(note.id);
+                                setNotes(prev => prev.map(n => n.id === note.id ? updated : n).sort((a, b) => {
+                                  if (a.isPinned && !b.isPinned) return -1;
+                                  if (!a.isPinned && b.isPinned) return 1;
+                                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+                                }));
+                              }}
+                              className={`p-1.5 rounded-lg transition-colors ${note.isPinned ? 'text-amber-500 hover:bg-amber-100' : 'text-slate-400 hover:bg-slate-100 hover:text-amber-500'}`}
+                              title={note.isPinned ? 'Unpin note' : 'Pin note'}
+                            >
+                              <Pin size={14} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setNoteForm({ title: note.title || '', content: note.content, category: note.category || 'General' });
+                                setEditingNoteId(note.id);
+                                setIsNoteModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-teal-600 transition-colors"
+                              title="Edit note"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm('Are you sure you want to delete this note?')) {
+                                  await noteService.delete(note.id);
+                                  setNotes(prev => prev.filter(n => n.id !== note.id));
+                                }
+                              }}
+                              className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                              title="Delete note"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
@@ -1052,6 +1214,103 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2" disabled={isScheduling}>
               {isScheduling ? <Loader2 size={16} className="animate-spin" /> : <Calendar size={16} />}
               {isScheduling ? 'Scheduling...' : 'Schedule'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Note Modal */}
+      <Modal isOpen={isNoteModalOpen} onClose={() => { setIsNoteModalOpen(false); setEditingNoteId(null); }} title={editingNoteId ? 'Edit Note' : 'Add Note'}>
+        <form onSubmit={async (e) => {
+          e.preventDefault();
+          if (!noteForm.content.trim()) return;
+          setNoteSaveStatus('saving');
+          try {
+            if (editingNoteId) {
+              const updated = await noteService.update(editingNoteId, {
+                title: noteForm.title || undefined,
+                content: noteForm.content,
+                category: noteForm.category
+              });
+              setNotes(prev => prev.map(n => n.id === editingNoteId ? updated : n));
+            } else {
+              const created = await noteService.create({
+                clientId: initialClient.id,
+                title: noteForm.title || undefined,
+                content: noteForm.content,
+                category: noteForm.category
+              });
+              setNotes(prev => [created, ...prev]);
+            }
+            setNoteSaveStatus('success');
+            setTimeout(() => {
+              setIsNoteModalOpen(false);
+              setEditingNoteId(null);
+              setNoteSaveStatus('idle');
+              setNoteForm({ title: '', content: '', category: 'General' });
+            }, 500);
+          } catch (error) {
+            console.error('Failed to save note:', error);
+            setNoteSaveStatus('error');
+          }
+        }} className="p-4 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Title (Optional)</label>
+            <input
+              type="text"
+              value={noteForm.title}
+              onChange={(e) => setNoteForm(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Note title..."
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Category</label>
+            <select
+              value={noteForm.category}
+              onChange={(e) => setNoteForm(prev => ({ ...prev, category: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none"
+            >
+              <option value="General">General</option>
+              <option value="Meeting">Meeting</option>
+              <option value="Call">Call</option>
+              <option value="Financial">Financial</option>
+              <option value="Personal">Personal</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Content *</label>
+            <textarea
+              value={noteForm.content}
+              onChange={(e) => setNoteForm(prev => ({ ...prev, content: e.target.value }))}
+              placeholder="Write your note here..."
+              rows={5}
+              required
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:outline-none resize-none"
+            />
+            <p className="text-xs text-slate-400 mt-1 text-right">{noteForm.content.length} characters</p>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => { setIsNoteModalOpen(false); setEditingNoteId(null); }}
+              className="flex-1 py-2.5 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+              disabled={noteSaveStatus === 'saving'}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={noteSaveStatus === 'saving' || !noteForm.content.trim()}
+              className="flex-1 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {noteSaveStatus === 'saving' ? (
+                <><Loader2 size={16} className="animate-spin" /> Saving...</>
+              ) : noteSaveStatus === 'success' ? (
+                <><Check size={16} /> Saved!</>
+              ) : (
+                <><Save size={16} /> {editingNoteId ? 'Update Note' : 'Save Note'}</>
+              )}
             </button>
           </div>
         </form>

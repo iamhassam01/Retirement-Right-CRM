@@ -29,6 +29,7 @@ import notificationRoutes from './routes/notifications.routes';
 import vapiRoutes from './routes/vapi.routes';
 import automationRoutes from './routes/automation.routes';
 import importRoutes from './routes/import.routes';
+import notesRoutes from './routes/notes.routes';
 
 // Import Middleware
 import { authenticateToken } from './middleware/auth.middleware';
@@ -102,6 +103,7 @@ app.use('/api/notifications', notificationRoutes);  // Auth handled inside route
 app.use('/api/vapi', vapiRoutes); // Public endpoint for Vapi/n8n
 app.use('/api/automation', automationRoutes); // Auth handled inside router
 app.use('/api/import', importRoutes); // Auth handled inside router
+app.use('/api/notes', notesRoutes); // Auth handled inside router
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
