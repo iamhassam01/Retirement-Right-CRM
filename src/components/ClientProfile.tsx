@@ -1227,37 +1227,71 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
 
       {/* Note Modal */}
       <Modal isOpen={isNoteModalOpen} onClose={() => { setIsNoteModalOpen(false); setEditingNoteId(null); }} title={editingNoteId ? 'Edit Note' : 'Add Note'}>
-        <form onSubmit={async (e) => {
+        <form onSubmit={(e) => {
           e.preventDefault();
           if (!noteForm.content.trim()) return;
-          setNoteSaveStatus('saving');
-          try {
-            if (editingNoteId) {
-              const updated = await noteService.update(editingNoteId, {
-                title: noteForm.title || undefined,
-                content: noteForm.content,
-                category: noteForm.category
-              });
-              setNotes(prev => prev.map(n => n.id === editingNoteId ? updated : n));
-            } else {
-              const created = await noteService.create({
-                clientId: initialClient.id,
-                title: noteForm.title || undefined,
-                content: noteForm.content,
-                category: noteForm.category
-              });
-              setNotes(prev => [created, ...prev]);
-            }
-            setNoteSaveStatus('success');
-            setTimeout(() => {
-              setIsNoteModalOpen(false);
-              setEditingNoteId(null);
-              setNoteSaveStatus('idle');
-              setNoteForm({ title: '', content: '', category: 'General' });
-            }, 500);
-          } catch (error) {
-            console.error('Failed to save note:', error);
-            setNoteSaveStatus('error');
+
+          // Helper to sort notes: pinned first, then by date
+          const sortNotes = (notesList: typeof notes) =>
+            [...notesList].sort((a, b) => {
+              if (a.isPinned && !b.isPinned) return -1;
+              if (!a.isPinned && b.isPinned) return 1;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+
+          if (editingNoteId) {
+            // Optimistic update for edit
+            setNotes(prev => sortNotes(prev.map(n => n.id === editingNoteId
+              ? { ...n, title: noteForm.title || undefined, content: noteForm.content, category: noteForm.category, updatedAt: new Date().toISOString() }
+              : n
+            )));
+            setIsNoteModalOpen(false);
+            setEditingNoteId(null);
+            setNoteForm({ title: '', content: '', category: 'General' });
+
+            // Sync with server in background
+            noteService.update(editingNoteId, {
+              title: noteForm.title || undefined,
+              content: noteForm.content,
+              category: noteForm.category
+            }).catch(err => {
+              console.error('Failed to update note:', err);
+              // Could show a toast here
+            });
+          } else {
+            // Optimistic create - add temp note immediately
+            const tempId = `temp-${Date.now()}`;
+            const tempNote = {
+              id: tempId,
+              clientId: initialClient.id,
+              authorId: '',
+              author: { id: '', name: 'You', avatar: undefined },
+              title: noteForm.title || undefined,
+              content: noteForm.content,
+              category: noteForm.category,
+              isPinned: false,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+
+            setNotes(prev => sortNotes([tempNote, ...prev]));
+            setIsNoteModalOpen(false);
+            setNoteForm({ title: '', content: '', category: 'General' });
+
+            // Sync with server in background
+            noteService.create({
+              clientId: initialClient.id,
+              title: noteForm.title || undefined,
+              content: noteForm.content,
+              category: noteForm.category
+            }).then(created => {
+              // Replace temp note with real one
+              setNotes(prev => sortNotes(prev.map(n => n.id === tempId ? created : n)));
+            }).catch(err => {
+              console.error('Failed to create note:', err);
+              // Remove temp note on error
+              setNotes(prev => prev.filter(n => n.id !== tempId));
+            });
           }
         }} className="p-4 space-y-4">
           <div>

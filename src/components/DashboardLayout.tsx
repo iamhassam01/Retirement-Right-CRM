@@ -279,7 +279,7 @@ const DashboardLayout: React.FC = () => {
                     setCurrentView('leads');
                 } else {
                     // Default: try to extract view name from link
-                    const viewName = notification.link.replace('/', '') as ViewType;
+                    const viewName = notification.link.replace('/', '');
                     if (['dashboard', 'pipeline', 'tasks', 'workshops', 'leads', 'clients', 'calendar', 'documents', 'reports', 'communications', 'settings', 'team', 'activitylog'].includes(viewName)) {
                         setCurrentView(viewName);
                     }
