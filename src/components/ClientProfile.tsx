@@ -61,6 +61,11 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   const [noteSaveStatus, setNoteSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [noteSearch, setNoteSearch] = useState('');
 
+  // Delete Note State
+  const [isDeleteNoteModalOpen, setIsDeleteNoteModalOpen] = useState(false);
+  const [noteToDeleteId, setNoteToDeleteId] = useState<string | null>(null);
+  const [deleteNoteStatus, setDeleteNoteStatus] = useState<'idle' | 'deleting' | 'success' | 'error'>('idle');
+
   // Edit Form State
   const [editForm, setEditForm] = useState({
     name: initialClient.name,
@@ -651,11 +656,9 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                               <Edit2 size={14} />
                             </button>
                             <button
-                              onClick={async () => {
-                                if (confirm('Are you sure you want to delete this note?')) {
-                                  await noteService.delete(note.id);
-                                  setNotes(prev => prev.filter(n => n.id !== note.id));
-                                }
+                              onClick={() => {
+                                setNoteToDeleteId(note.id);
+                                setIsDeleteNoteModalOpen(true);
                               }}
                               className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
                               title="Delete note"
@@ -1355,7 +1358,67 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
           </div>
         </form>
       </Modal>
-    </div>
+
+      {/* Delete Note Confirmation Modal */}
+      <Modal isOpen={isDeleteNoteModalOpen} onClose={() => { setIsDeleteNoteModalOpen(false); setNoteToDeleteId(null); }} title="Delete Note">
+        <div className="p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <Trash2 size={24} className="text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-navy-900">Delete this note?</h3>
+              <p className="text-slate-500 text-sm">This action cannot be undone.</p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => { setIsDeleteNoteModalOpen(false); setNoteToDeleteId(null); }}
+              className="flex-1 py-2.5 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors"
+              disabled={deleteNoteStatus === 'deleting'}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (!noteToDeleteId) return;
+                setDeleteNoteStatus('deleting');
+                try {
+                  // Optimistic UI update
+                  const idToDelete = noteToDeleteId;
+                  const previousNotes = [...notes];
+                  setNotes(prev => prev.filter(n => n.id !== idToDelete));
+
+                  setIsDeleteNoteModalOpen(false);
+                  setNoteToDeleteId(null);
+                  setDeleteNoteStatus('idle');
+
+                  // Server delete
+                  await noteService.delete(idToDelete).catch(err => {
+                    console.error('Failed to delete note:', err);
+                    // Revert if server fails
+                    setNotes(previousNotes);
+                    alert('Failed to delete note');
+                  });
+                } catch (error) {
+                  console.error('Failed to delete note:', error);
+                  setDeleteNoteStatus('error');
+                }
+              }}
+              className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={deleteNoteStatus === 'deleting'}
+            >
+              {deleteNoteStatus === 'deleting' ? (
+                <><Loader2 size={16} className="animate-spin" /> Deleting...</>
+              ) : (
+                'Delete Note'
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div >
   );
 };
 
