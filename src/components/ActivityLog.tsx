@@ -12,9 +12,14 @@ interface ActivityItem {
     description: string;
     timestamp: string;
     clientName?: string;
+    clientId?: string;
 }
 
-const ActivityLog: React.FC = () => {
+interface ActivityLogProps {
+    onSelectClient?: (clientId: string) => void;
+}
+
+const ActivityLog: React.FC<ActivityLogProps> = ({ onSelectClient }) => {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [filter, setFilter] = useState<string>('all');
     const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +51,8 @@ const ActivityLog: React.FC = () => {
                             activity.type === 'meeting' ? 'Meeting' : 'Activity',
                     description: activity.notes || activity.type,
                     timestamp: activity.date || new Date().toISOString(),
-                    clientName: activity.client?.name
+                    clientName: activity.client?.name,
+                    clientId: activity.clientId
                 });
             });
 
@@ -62,7 +68,8 @@ const ActivityLog: React.FC = () => {
                     title: event.title || 'Appointment',
                     description: `${event.type || 'Event'} scheduled`,
                     timestamp: createdTimestamp,
-                    clientName: event.clientName
+                    clientName: event.clientName,
+                    clientId: event.clientId
                 });
             });
 
@@ -74,7 +81,8 @@ const ActivityLog: React.FC = () => {
                     title: 'Client Added',
                     description: `${client.name} added to ${client.pipelineStage || 'pipeline'}`,
                     timestamp: client.createdAt || new Date().toISOString(),
-                    clientName: client.name
+                    clientName: client.name,
+                    clientId: client.id
                 });
             });
 
@@ -86,7 +94,8 @@ const ActivityLog: React.FC = () => {
                     title: task.status === 'Completed' ? 'Task Completed' : 'Task Created',
                     description: task.title,
                     timestamp: task.createdAt || task.due || new Date().toISOString(),
-                    clientName: task.clientName
+                    clientName: task.clientName,
+                    clientId: task.clientId
                 });
             });
 
@@ -210,7 +219,10 @@ const ActivityLog: React.FC = () => {
                 ) : (
                     <div className="divide-y divide-slate-100">
                         {filteredActivities.map(activity => (
-                            <div key={activity.id} className="p-5 hover:bg-slate-50 transition-colors">
+                            <div key={activity.id}
+                                onClick={() => activity.clientId && onSelectClient?.(activity.clientId)}
+                                className={`p-5 hover:bg-slate-50 transition-colors ${activity.clientId && onSelectClient ? 'cursor-pointer' : ''}`}
+                            >
                                 <div className="flex items-start gap-4">
                                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
                                         {getActivityIcon(activity.type)}
@@ -222,7 +234,7 @@ const ActivityLog: React.FC = () => {
                                         </div>
                                         <p className="text-sm text-slate-600 mt-0.5">{activity.description}</p>
                                         {activity.clientName && (
-                                            <p className="text-xs text-teal-600 mt-1">Client: {activity.clientName}</p>
+                                            <p className={`text-xs mt-1 ${activity.clientId && onSelectClient ? 'text-teal-600 hover:underline' : 'text-teal-600'}`}>Client: {activity.clientName}</p>
                                         )}
                                     </div>
                                 </div>

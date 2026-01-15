@@ -205,7 +205,7 @@ const DashboardLayout: React.FC = () => {
             case 'team':
                 return <Team />;
             case 'activitylog':
-                return <ActivityLog />;
+                return <ActivityLog onSelectClient={setSelectedClientId} />;
             default:
                 return (
                     <div className="flex items-center justify-center h-full text-slate-400">

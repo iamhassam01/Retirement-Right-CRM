@@ -620,13 +620,19 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button
-                              onClick={async () => {
-                                const updated = await noteService.togglePin(note.id);
-                                setNotes(prev => prev.map(n => n.id === note.id ? updated : n).sort((a, b) => {
+                              onClick={() => {
+                                // Optimistic UI update - flip immediately
+                                setNotes(prev => prev.map(n => n.id === note.id ? { ...n, isPinned: !n.isPinned } : n).sort((a, b) => {
                                   if (a.isPinned && !b.isPinned) return -1;
                                   if (!a.isPinned && b.isPinned) return 1;
                                   return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
                                 }));
+                                // Update server in background
+                                noteService.togglePin(note.id).catch(err => {
+                                  console.error('Failed to toggle pin:', err);
+                                  // Revert on error
+                                  setNotes(prev => prev.map(n => n.id === note.id ? { ...n, isPinned: note.isPinned } : n));
+                                });
                               }}
                               className={`p-1.5 rounded-lg transition-colors ${note.isPinned ? 'text-amber-500 hover:bg-amber-100' : 'text-slate-400 hover:bg-slate-100 hover:text-amber-500'}`}
                               title={note.isPinned ? 'Unpin note' : 'Pin note'}
