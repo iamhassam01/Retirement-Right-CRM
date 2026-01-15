@@ -250,13 +250,40 @@ const DashboardLayout: React.FC = () => {
             }
         };
 
-        const handleMarkAsRead = async (id: string) => {
-            try {
-                await notificationService.markAsRead(id);
-                setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-                setUnreadCount(prev => Math.max(0, prev - 1));
-            } catch (error) {
-                console.error('Failed to mark as read:', error);
+        const handleNotificationClick = async (notification: Notification) => {
+            // Mark as read if unread
+            if (!notification.isRead) {
+                try {
+                    await notificationService.markAsRead(notification.id);
+                    setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+                    setUnreadCount(prev => Math.max(0, prev - 1));
+                } catch (error) {
+                    console.error('Failed to mark as read:', error);
+                }
+            }
+
+            // Navigate to destination if link exists
+            if (notification.link) {
+                setIsNotificationsOpen(false);
+
+                // Parse link to determine navigation
+                // Links format: /clients/{id}, /tasks, /calendar, etc.
+                if (notification.link.startsWith('/clients/')) {
+                    const clientId = notification.link.replace('/clients/', '');
+                    setSelectedClientId(clientId);
+                } else if (notification.link === '/tasks') {
+                    setCurrentView('tasks');
+                } else if (notification.link === '/calendar') {
+                    setCurrentView('calendar');
+                } else if (notification.link === '/leads') {
+                    setCurrentView('leads');
+                } else {
+                    // Default: try to extract view name from link
+                    const viewName = notification.link.replace('/', '') as ViewType;
+                    if (['dashboard', 'pipeline', 'tasks', 'workshops', 'leads', 'clients', 'calendar', 'documents', 'reports', 'communications', 'settings', 'team', 'activitylog'].includes(viewName)) {
+                        setCurrentView(viewName);
+                    }
+                }
             }
         };
 
@@ -301,7 +328,7 @@ const DashboardLayout: React.FC = () => {
                         notifications.map(notification => (
                             <div
                                 key={notification.id}
-                                onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
+                                onClick={() => handleNotificationClick(notification)}
                                 className={`p-4 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${!notification.isRead ? 'bg-teal-50/30' : ''
                                     }`}
                             >

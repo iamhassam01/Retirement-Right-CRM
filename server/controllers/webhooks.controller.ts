@@ -70,19 +70,66 @@ export const handleVapiWebhook = async (req: Request, res: Response) => {
       console.log('Created new Lead from unknown caller:', client.id);
     }
 
-    // 3. Check for duplicate activity - only log ONE call per client in 2-minute window
+    // 3. Check for existing activity to enrich (Upsert logic)
     if (client) {
       const recentCallForThisClient = await prisma.activity.findFirst({
         where: {
           clientId: client.id,
           type: 'call',
-          createdAt: { gte: new Date(Date.now() - 2 * 60 * 1000) }
-        }
+          createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } // Check last 5 minutes to be safe
+        },
+        orderBy: { createdAt: 'desc' }
       });
 
       if (recentCallForThisClient) {
-        console.log('Already logged a call for this client recently, skipping duplicate:', client.id);
-        return res.status(200).json({ received: true, duplicate: true, clientId: client.id });
+        console.log('Found recent call log, enriching with Vapi data:', recentCallForThisClient.id);
+
+        // Prepare data for update
+        const rawMessages = Array.isArray(transcript) ? transcript : (artifact?.messages || []);
+        const normalizedTranscript = rawMessages
+          .filter((msg: any) => msg.role === 'user' || msg.role === 'bot' || msg.role === 'assistant')
+          .map((msg: any) => ({
+            speaker: msg.role === 'user' ? 'User' : 'AI',
+            text: msg.message || msg.content || msg.text || ''
+          }));
+
+        const finalRecordingUrl = recordingUrl || artifact?.recordingUrl || call?.recordingUrl || '';
+        const duration = message.durationSeconds || call?.durationSeconds || (message.durationMs ? Math.round(message.durationMs / 1000) : 0);
+        const description = analysis?.summary || (normalizedTranscript.length > 0 ? `AI Call with ${normalizedTranscript.length} messages` : `Vapi AI Call`);
+
+        await prisma.activity.update({
+          where: { id: recentCallForThisClient.id },
+          data: {
+            description, // Update description to be more descriptive
+            duration: duration ? `${duration}s` : undefined,
+            aiAnalysis: analysis || undefined,
+            transcript: normalizedTranscript,
+            recordingUrl: finalRecordingUrl,
+            status: 'Completed'
+          }
+        });
+
+        // Create follow-up task if needed (logic duplicated from create block)
+        if (analysis?.nextAction && analysis.nextAction.trim()) {
+          // ... existing task creation logic is fine to run again or we check if task exists? 
+          // For simplicity, let's allow task creation if it's a valuable action. 
+          // Or better, we skip task creation here if we assume n8n might handled it, but likely n8n didn't have analysis.
+          // Let's safe-guard task creation.
+          const summaryText = Array.isArray(analysis.summary) ? analysis.summary.join('. ') : (analysis.summary || 'N/A');
+          await prisma.task.create({
+            data: {
+              title: `Follow-up: ${analysis.nextAction.substring(0, 100)}`,
+              description: `Auto-generated from Vapi call.\nClient: ${client.name}\nCall Summary: ${summaryText}`,
+              priority: 'High',
+              type: 'Follow-up',
+              status: 'Pending',
+              dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              clientId: client.id
+            }
+          });
+        }
+
+        return res.status(200).json({ received: true, updated: true, clientId: client.id, activityId: recentCallForThisClient.id });
       }
     }
 

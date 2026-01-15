@@ -318,28 +318,40 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
     const isExpanded = expandedActivity === activity.id;
     const analysis = activity.aiAnalysis as any;
     const transcript = activity.transcript as any[];
+    const hasRecording = !!activity.recordingUrl;
+    const hasTranscript = transcript && transcript.length > 0;
+    const hasAnalysis = !!analysis;
 
     return (
       <div className={`rounded-xl border transition-all duration-300 overflow-hidden ${isExpanded ? 'bg-white border-teal-200 shadow-md ring-1 ring-teal-100' : 'bg-white border-slate-200 hover:border-teal-200'}`}>
-        <div onClick={() => toggleExpand(activity.id)} className="p-4 flex items-center justify-between cursor-pointer">
+        <div onClick={() => toggleExpand(activity.id)} className="p-4 flex items-center justify-between cursor-pointer group">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm flex-shrink-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm flex-shrink-0 ${activity.subType === 'ai' ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-slate-500'}`}>
               <Bot size={18} />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h4 className="font-bold text-navy-900">AI Voice Agent (Vapi)</h4>
+                <h4 className="font-bold text-navy-900">{activity.subType === 'ai' ? 'AI Voice Agent (Vapi)' : 'Call Log'}</h4>
                 <span className="text-xs text-slate-400">• {new Date(activity.date).toLocaleString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
               </div>
-              <p className="text-sm text-slate-600 mt-0.5">{activity.description}</p>
+              <p className="text-sm text-slate-600 mt-0.5 line-clamp-1">{activity.description || 'No description available'}</p>
+              <div className="flex gap-2 mt-1">
+                {hasRecording && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded flex items-center gap-1"><Volume2 size={10} /> Audio</span>}
+                {hasTranscript && <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded flex items-center gap-1"><FileText size={10} /> Transcript</span>}
+              </div>
             </div>
           </div>
-          <button className="text-slate-400 hover:text-teal-600 transition-colors">
+          <button className="flex items-center gap-2 text-slate-400 group-hover:text-teal-600 transition-colors text-sm font-medium">
+            {isExpanded ? 'Collapse' : 'View Details'}
             {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
         </div>
         {isExpanded && (
           <div className="bg-slate-50/50 border-t border-slate-100 p-6 space-y-6">
+            {!hasRecording && !hasAnalysis && !hasTranscript && (
+              <p className="text-sm text-slate-500 italic text-center">No additional details available for this call.</p>
+            )}
+
             {activity.recordingUrl && (
               <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg">
                 <Volume2 size={18} className="text-slate-500" />
@@ -360,7 +372,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                 </div>
               </div>
             )}
-            {transcript && transcript.length > 0 && (
+            {transcript && transcript.length > 0 ? (
               <div className="border-t border-slate-200 pt-4">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Transcript</p>
                 <div className="space-y-2 max-h-60 overflow-y-auto bg-white p-3 rounded-lg border border-slate-200">
@@ -371,6 +383,11 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
                     </div>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="border-t border-slate-200 pt-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Transcript</p>
+                <p className="text-sm text-slate-400 italic">No transcript available for this call.</p>
               </div>
             )}
           </div>
