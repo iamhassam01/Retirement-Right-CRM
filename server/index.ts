@@ -30,6 +30,7 @@ import vapiRoutes from './routes/vapi.routes';
 import automationRoutes from './routes/automation.routes';
 import importRoutes from './routes/import.routes';
 import notesRoutes from './routes/notes.routes';
+import timeblockRoutes from './routes/timeblock.routes';
 
 // Import Middleware
 import { authenticateToken } from './middleware/auth.middleware';
@@ -104,6 +105,7 @@ app.use('/api/vapi', vapiRoutes); // Public endpoint for Vapi/n8n
 app.use('/api/automation', automationRoutes); // Auth handled inside router
 app.use('/api/import', importRoutes); // Auth handled inside router
 app.use('/api/notes', notesRoutes); // Auth handled inside router
+app.use('/api/timeblocks', timeblockRoutes); // Auth handled inside router
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));

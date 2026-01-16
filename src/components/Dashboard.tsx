@@ -130,25 +130,43 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, onSelectClient }) => 
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-200">
-            <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-lg ${stat.isPositive === false ? 'bg-rose-50' : 'bg-slate-50'}`}>
-                {getKPIIcon(stat.label)}
+        {stats.map((stat, idx) => {
+          // Determine navigation target based on KPI label
+          const getNavTarget = (label: string) => {
+            switch (label) {
+              case 'Active Clients': return 'clients';
+              case 'Appointments Today': return 'calendar';
+              case 'Pending Follow-ups': return 'tasks';
+              case 'Total AUM': return 'reports';
+              default: return null;
+            }
+          };
+          const navTarget = getNavTarget(stat.label);
+
+          return (
+            <div
+              key={idx}
+              onClick={() => navTarget && onNavigate(navTarget)}
+              className={`bg-white p-6 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-200 ${navTarget ? 'cursor-pointer hover:border-teal-200 active:scale-[0.98]' : ''}`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className={`p-3 rounded-lg ${stat.isPositive === false ? 'bg-rose-50' : 'bg-slate-50'}`}>
+                  {getKPIIcon(stat.label)}
+                </div>
+                {stat.change && (
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.isPositive
+                    ? 'text-emerald-600 bg-emerald-50'
+                    : 'text-rose-600 bg-rose-50'
+                    }`}>
+                    {stat.change}
+                  </span>
+                )}
               </div>
-              {stat.change && (
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.isPositive
-                  ? 'text-emerald-600 bg-emerald-50'
-                  : 'text-rose-600 bg-rose-50'
-                  }`}>
-                  {stat.change}
-                </span>
-              )}
+              <h3 className="text-slate-500 text-sm font-medium">{stat.label}</h3>
+              <p className="text-2xl font-bold text-navy-900 mt-1">{stat.value}</p>
             </div>
-            <h3 className="text-slate-500 text-sm font-medium">{stat.label}</h3>
-            <p className="text-2xl font-bold text-navy-900 mt-1">{stat.value}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown, List, Trash2, Edit3, Loader2, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown, List, Trash2, Edit3, Loader2, Calendar as CalendarIcon, Clock, Lock } from 'lucide-react';
 import { getCalendarEvents, createEvent } from '../services/db';
 import { teamService } from '../services/team.service';
 import { eventService } from '../services/event.service';
 import { clientService } from '../services/client.service';
+import { timeBlockService, TimeBlock } from '../services/timeblock.service';
 import { CalendarEvent, Client } from '../types';
 import Modal from './Modal';
 
@@ -29,11 +30,26 @@ const CalendarView: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [advisors, setAdvisors] = useState<{ id: string, name: string }[]>([]);
 
+  // Time Blocking State
+  const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
+  const [blockForm, setBlockForm] = useState({
+    title: '',
+    type: 'busy' as 'busy' | 'personal' | 'out_of_office',
+    date: '',
+    startTime: '09:00',
+    endTime: '10:00',
+    isRecurring: false,
+    recurringDays: [] as string[]
+  });
+  const [isCreatingBlock, setIsCreatingBlock] = useState(false);
+
   // Fetch real data on mount and when date/view changes
   useEffect(() => {
     fetchEvents();
     fetchAvailability();
     fetchClientsAndAdvisors();
+    fetchTimeBlocks();
   }, [currentDate, view]);
 
   const fetchClientsAndAdvisors = async () => {
@@ -55,6 +71,68 @@ const CalendarView: React.FC = () => {
       setIsAvailable(data.isAvailable);
     } catch (error) {
       console.error('Failed to fetch availability:', error);
+    }
+  };
+
+  const fetchTimeBlocks = async () => {
+    try {
+      // Determine date range based on view
+      let startDate = new Date(currentDate);
+      let endDate = new Date(currentDate);
+
+      if (view === 'month') {
+        startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      } else if (view === 'week') {
+        const day = currentDate.getDay();
+        startDate.setDate(currentDate.getDate() - day);
+        endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+      }
+
+      const blocks = await timeBlockService.getAll(startDate, endDate);
+      setTimeBlocks(blocks);
+    } catch (error) {
+      console.error('Failed to fetch time blocks:', error);
+    }
+  };
+
+  const handleCreateTimeBlock = async () => {
+    if (!blockForm.date || !blockForm.startTime || !blockForm.endTime) return;
+
+    setIsCreatingBlock(true);
+    try {
+      const startTime = new Date(`${blockForm.date}T${blockForm.startTime}:00`);
+      const endTime = new Date(`${blockForm.date}T${blockForm.endTime}:00`);
+
+      const recurrenceRule = blockForm.isRecurring && blockForm.recurringDays.length > 0
+        ? `WEEKLY:${blockForm.recurringDays.join(',')}`
+        : undefined;
+
+      const newBlock = await timeBlockService.create({
+        title: blockForm.title || undefined,
+        type: blockForm.type,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        isRecurring: blockForm.isRecurring,
+        recurrenceRule
+      });
+
+      setTimeBlocks(prev => [...prev, newBlock]);
+      setIsBlockModalOpen(false);
+      setBlockForm({
+        title: '',
+        type: 'busy',
+        date: '',
+        startTime: '09:00',
+        endTime: '10:00',
+        isRecurring: false,
+        recurringDays: []
+      });
+    } catch (error) {
+      console.error('Failed to create time block:', error);
+    } finally {
+      setIsCreatingBlock(false);
     }
   };
 
@@ -109,13 +187,25 @@ const CalendarView: React.FC = () => {
       const end = new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour duration
 
       if (editingEvent) {
+        // Update existing event
         await eventService.update(editingEvent.id, {
-          title, start, end, type, clientId: clientId || undefined, advisorId: advisorId || undefined
+          title,
+          start,
+          end,
+          type,
+          clientId: clientId || undefined,
+          advisorId: advisorId || undefined
         });
         setEditingEvent(null);
       } else {
+        // Create new event
         await createEvent({
-          title, start, end, type, clientId: clientId || undefined, advisorId: advisorId || undefined
+          title,
+          start,
+          end,
+          type,
+          clientId: clientId || undefined,
+          advisorId: advisorId || undefined
         });
       }
 
@@ -418,6 +508,16 @@ const CalendarView: React.FC = () => {
           <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800 transition-all active:scale-95">
             + New Appointment
           </button>
+
+          <button
+            onClick={() => {
+              setBlockForm({ ...blockForm, date: currentDate.toISOString().split('T')[0] });
+              setIsBlockModalOpen(true);
+            }}
+            className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <Lock size={16} /> Block Time
+          </button>
         </div>
       </div>
 
@@ -604,6 +704,129 @@ const CalendarView: React.FC = () => {
                   <Trash2 size={16} />
                   Delete
                 </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Block Time Modal */}
+      <Modal isOpen={isBlockModalOpen} onClose={() => setIsBlockModalOpen(false)} title="Block Time">
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Title (Optional)</label>
+            <input
+              type="text"
+              value={blockForm.title}
+              onChange={(e) => setBlockForm(prev => ({ ...prev, title: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              placeholder="e.g. Lunch Break, Doctor Appointment"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Block Type</label>
+            <select
+              value={blockForm.type}
+              onChange={(e) => setBlockForm(prev => ({ ...prev, type: e.target.value as any }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >
+              <option value="busy">Busy</option>
+              <option value="personal">Personal</option>
+              <option value="out_of_office">Out of Office</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
+            <input
+              type="date"
+              value={blockForm.date}
+              onChange={(e) => setBlockForm(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">Start Time</label>
+              <input
+                type="time"
+                value={blockForm.startTime}
+                onChange={(e) => setBlockForm(prev => ({ ...prev, startTime: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-navy-900 mb-1">End Time</label>
+              <input
+                type="time"
+                value={blockForm.endTime}
+                onChange={(e) => setBlockForm(prev => ({ ...prev, endTime: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-500"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 pt-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={blockForm.isRecurring}
+                onChange={(e) => setBlockForm(prev => ({ ...prev, isRecurring: e.target.checked }))}
+                className="w-4 h-4 text-teal-600 rounded"
+              />
+              <span className="text-sm font-medium text-navy-900">Repeat weekly</span>
+            </label>
+
+            {blockForm.isRecurring && (
+              <div className="flex gap-2 mt-3">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      const dayKey = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][idx];
+                      setBlockForm(prev => ({
+                        ...prev,
+                        recurringDays: prev.recurringDays.includes(dayKey)
+                          ? prev.recurringDays.filter(d => d !== dayKey)
+                          : [...prev.recurringDays, dayKey]
+                      }));
+                    }}
+                    className={`px-2.5 py-1.5 text-xs font-medium rounded-md transition-colors ${blockForm.recurringDays.includes(['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][idx])
+                      ? 'bg-teal-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsBlockModalOpen(false)}
+              className="flex-1 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateTimeBlock}
+              disabled={isCreatingBlock || !blockForm.date}
+              className="flex-1 py-2.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isCreatingBlock ? (
+                <><Loader2 size={16} className="animate-spin" /> Blocking...</>
+              ) : (
+                <><Lock size={16} /> Block Time</>
               )}
             </button>
           </div>

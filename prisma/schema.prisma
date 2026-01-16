@@ -29,6 +29,7 @@ model User {
   events  Event[]
   notifications Notification[]
   notes   Note[]   // Notes authored by this user
+  timeBlocks TimeBlock[] // Time blocks for calendar availability
 }
 
 enum Role {
@@ -318,4 +319,27 @@ model Note {
   updatedAt DateTime @updatedAt
   
   @@index([clientId])
+}
+
+// --- Time Blocking (Calendar Availability) ---
+model TimeBlock {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  title       String?  // "Lunch", "Personal Time", etc.
+  type        String   @default("busy") // "busy", "personal", "out_of_office"
+  
+  startTime   DateTime
+  endTime     DateTime
+  
+  // Recurrence
+  isRecurring Boolean  @default(false)
+  recurrenceRule String? // e.g., "WEEKLY:MON,WED,FRI" or null for one-time
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([startTime, endTime])
 }

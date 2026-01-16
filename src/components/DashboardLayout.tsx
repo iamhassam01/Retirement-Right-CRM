@@ -388,7 +388,11 @@ const DashboardLayout: React.FC = () => {
             // Appointment fields
             apptType: 'Meeting',
             clientId: '',
-            advisorId: ''
+            advisorId: '',
+            // Policy Delivery fields
+            policyTitle: '',
+            policyNotes: '',
+            policyClientSearch: ''
         });
 
         const handleSubmit = async () => {
@@ -431,6 +435,18 @@ const DashboardLayout: React.FC = () => {
                         clientId: formData.clientId || undefined,
                         advisorId: formData.advisorId || undefined
                     });
+                } else if (quickAddType === 'policy') {
+                    const startDate = new Date(`${formData.date}T${formData.time || '09:00'}`);
+                    const endDate = new Date(startDate.getTime() + 3600000);
+                    await eventService.create({
+                        title: formData.policyTitle || 'Policy Delivery',
+                        start: startDate,
+                        end: endDate,
+                        type: 'Policy Delivery',
+                        clientId: formData.clientId || undefined,
+                        advisorId: formData.advisorId || undefined,
+                        notes: formData.policyNotes || undefined
+                    });
                 }
                 setStatus('success');
                 setTimeout(() => {
@@ -440,7 +456,8 @@ const DashboardLayout: React.FC = () => {
                         name: '', email: '', phone: '', clientStatus: 'Lead',
                         title: '', due: '', priority: 'Medium', taskType: 'Follow-up', taskClientId: '',
                         date: '', time: '', location: '', capacity: '',
-                        apptType: 'Meeting', clientId: '', advisorId: ''
+                        apptType: 'Meeting', clientId: '', advisorId: '',
+                        policyTitle: '', policyNotes: '', policyClientSearch: ''
                     });
                 }, 1000);
             } catch (error) {
@@ -463,15 +480,15 @@ const DashboardLayout: React.FC = () => {
 
         return (
             <div className="space-y-4">
-                <div className="grid grid-cols-4 bg-slate-100 p-1 rounded-lg mb-6 gap-1">
-                    {(['client', 'task', 'event', 'appointment'] as const).map(type => (
+                <div className="grid grid-cols-5 bg-slate-100 p-1 rounded-lg mb-6 gap-1">
+                    {(['client', 'task', 'event', 'appointment', 'policy'] as const).map(type => (
                         <button
                             key={type}
                             onClick={() => setQuickAddType(type)}
                             className={`text-xs sm:text-sm font-medium py-1.5 rounded-md capitalize ${quickAddType === type ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800'
                                 }`}
                         >
-                            {type}
+                            {type === 'policy' ? 'Policy' : type}
                         </button>
                     ))}
                 </div>
@@ -711,6 +728,96 @@ const DashboardLayout: React.FC = () => {
                                     {quickAddAdvisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                 </select>
                             </div>
+                        </div>
+                    </>
+                )}
+
+                {quickAddType === 'policy' && (
+                    <>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Policy Delivery Title *</label>
+                            <input
+                                type="text"
+                                value={formData.policyTitle}
+                                onChange={(e) => setFormData({ ...formData, policyTitle: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                placeholder="e.g. Annual Policy Review, Life Insurance Delivery"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Date *</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-navy-900 mb-1">Time *</label>
+                                <input
+                                    type="time"
+                                    value={formData.time}
+                                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Client *</label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={formData.policyClientSearch}
+                                    onChange={(e) => setFormData({ ...formData, policyClientSearch: e.target.value, clientId: '' })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    placeholder="Type to search clients..."
+                                />
+                                {formData.policyClientSearch && !formData.clientId && (
+                                    <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        {quickAddClients
+                                            .filter(c => c.name.toLowerCase().includes(formData.policyClientSearch.toLowerCase()))
+                                            .slice(0, 8)
+                                            .map(client => (
+                                                <button
+                                                    key={client.id}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, clientId: client.id, policyClientSearch: client.name })}
+                                                    className="w-full px-3 py-2 text-left hover:bg-purple-50 text-sm text-navy-900"
+                                                >
+                                                    {client.name}
+                                                    {client.email && <span className="text-slate-400 ml-2 text-xs">{client.email}</span>}
+                                                </button>
+                                            ))}
+                                        {quickAddClients.filter(c => c.name.toLowerCase().includes(formData.policyClientSearch.toLowerCase())).length === 0 && (
+                                            <div className="px-3 py-2 text-sm text-slate-400">No clients found</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Assigned Advisor</label>
+                            <select
+                                value={formData.advisorId}
+                                onChange={(e) => setFormData({ ...formData, advisorId: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                <option value="">Select Advisor...</option>
+                                {quickAddAdvisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-navy-900 mb-1">Notes</label>
+                            <textarea
+                                value={formData.policyNotes}
+                                onChange={(e) => setFormData({ ...formData, policyNotes: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 h-20 resize-none"
+                                placeholder="Policy details, documents needed, etc."
+                            />
                         </div>
                     </>
                 )}
