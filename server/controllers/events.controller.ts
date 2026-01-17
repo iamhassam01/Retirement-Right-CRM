@@ -55,8 +55,53 @@ export const createEvent = async (req: Request, res: Response) => {
     try {
         const { title, start, end, type, clientId, advisorId } = req.body;
         const currentUserId = (req as any).user?.id;
+        const targetAdvisorId = advisorId || currentUserId;
 
         console.log('Creating event:', { title, start, type, clientId, advisorId, currentUserId });
+
+        // Check for time block conflicts for the target advisor
+        if (targetAdvisorId) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+
+            const conflicts = await prisma.timeBlock.findMany({
+                where: {
+                    userId: targetAdvisorId,
+                    OR: [
+                        // New event starts during an existing block
+                        {
+                            AND: [
+                                { startTime: { lte: startDate } },
+                                { endTime: { gt: startDate } }
+                            ]
+                        },
+                        // New event ends during an existing block
+                        {
+                            AND: [
+                                { startTime: { lt: endDate } },
+                                { endTime: { gte: endDate } }
+                            ]
+                        },
+                        // New event completely contains an existing block
+                        {
+                            AND: [
+                                { startTime: { gte: startDate } },
+                                { endTime: { lte: endDate } }
+                            ]
+                        }
+                    ]
+                }
+            });
+
+            if (conflicts.length > 0) {
+                const blockInfo = conflicts[0];
+                console.log('Booking conflict detected with time block:', blockInfo);
+                return res.status(409).json({
+                    error: 'Time slot is blocked',
+                    message: `This time slot is blocked (${blockInfo.title || blockInfo.type}). Please choose a different time.`
+                });
+            }
+        }
 
         const event = await prisma.event.create({
             data: {
@@ -66,7 +111,7 @@ export const createEvent = async (req: Request, res: Response) => {
                 type,
                 status: 'Scheduled',
                 clientId: clientId || null,
-                advisorId: advisorId || currentUserId || null
+                advisorId: targetAdvisorId || null
             },
             include: {
                 client: { select: { name: true } }

@@ -239,6 +239,17 @@ const CalendarView: React.FC = () => {
     );
   };
 
+  const getTimeBlocksForDate = (date: Date) => {
+    return timeBlocks.filter(block => {
+      const blockStart = new Date(block.startTime);
+      return (
+        blockStart.getDate() === date.getDate() &&
+        blockStart.getMonth() === date.getMonth() &&
+        blockStart.getFullYear() === date.getFullYear()
+      );
+    });
+  };
+
   // --- Renderers ---
 
   const renderMonthView = () => {
@@ -263,12 +274,27 @@ const CalendarView: React.FC = () => {
             const isToday = new Date().toDateString() === date.toDateString();
             const isCurrentMonth = date.getMonth() === currentDate.getMonth();
             const dayEvents = getEventsForDate(date);
+            const dayBlocks = getTimeBlocksForDate(date);
             return (
               <div key={idx} className={`border-b border-r border-slate-100 p-2 min-h-[100px] relative hover:bg-slate-50/50 transition-colors ${idx % 7 === 6 ? 'border-r-0' : ''} ${!isCurrentMonth ? 'bg-slate-50/30' : ''}`}>
                 <div className={`text-sm font-medium mb-2 ${isToday ? 'w-7 h-7 bg-teal-600 text-white flex items-center justify-center rounded-full' : isCurrentMonth ? 'text-slate-700' : 'text-slate-300'}`}>
                   {date.getDate()}
                 </div>
                 <div className="space-y-1">
+                  {/* Time Blocks */}
+                  {dayBlocks.map(block => {
+                    const blockStart = new Date(block.startTime);
+                    return (
+                      <div key={block.id}
+                        className="p-1.5 rounded border text-xs bg-slate-200 border-slate-300 text-slate-600 flex items-center gap-1"
+                        title={`Blocked: ${block.title || block.type}`}>
+                        <Lock size={10} />
+                        <span className="font-semibold">{blockStart.getHours()}:{blockStart.getMinutes().toString().padStart(2, '0')}</span>
+                        <span className="truncate">{block.title || 'Blocked'}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Events */}
                   {dayEvents.map(event => (
                     <div key={event.id}
                       onClick={() => { setEditingEvent(event); setIsModalOpen(true); }}
@@ -285,6 +311,7 @@ const CalendarView: React.FC = () => {
       </div>
     );
   };
+
 
   const renderWeekView = () => {
     const startOfWeek = new Date(currentDate);
@@ -332,11 +359,41 @@ const CalendarView: React.FC = () => {
             {/* Days */}
             {weekDates.map((date, dayIdx) => {
               const dayEvents = getEventsForDate(date);
+              const dayBlocks = getTimeBlocksForDate(date);
               return (
                 <div key={dayIdx} className="col-span-1 border-r border-slate-200 last:border-r-0 relative bg-white">
                   {hours.map(hour => (
                     <div key={hour} className="h-20 border-b border-slate-100"></div>
                   ))}
+                  {/* Time Blocks Overlay */}
+                  {dayBlocks.map(block => {
+                    const blockStart = new Date(block.startTime);
+                    const blockEnd = new Date(block.endTime);
+                    const startHour = blockStart.getHours();
+                    const startMin = blockStart.getMinutes();
+                    const durationMin = (blockEnd.getTime() - blockStart.getTime()) / (1000 * 60);
+
+                    const top = Math.max(0, (startHour - 6) * 80 + (startMin / 60) * 80);
+                    const height = Math.max(30, (durationMin / 60) * 80);
+
+                    if (startHour < 6) return null;
+
+                    return (
+                      <div key={block.id}
+                        className="absolute left-0 right-0 bg-slate-300/50 border-l-4 border-slate-500 z-5 px-2 py-1 overflow-hidden"
+                        style={{
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(148,163,184,0.3) 5px, rgba(148,163,184,0.3) 10px)'
+                        }}
+                        title={`Blocked: ${block.title || block.type}`}>
+                        <div className="flex items-center gap-1 text-xs font-medium text-slate-600">
+                          <Lock size={12} />
+                          <span>{block.title || 'Blocked'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                   {/* Events Overlay */}
                   {dayEvents.map(event => {
                     const startHour = event.start.getHours();
@@ -376,6 +433,7 @@ const CalendarView: React.FC = () => {
   const renderDayView = () => {
     const hours = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
     const dayEvents = getEventsForDate(currentDate);
+    const dayBlocks = getTimeBlocksForDate(currentDate);
     const isToday = new Date().toDateString() === currentDate.toDateString();
 
     return (
@@ -398,6 +456,39 @@ const CalendarView: React.FC = () => {
                 <div className="flex-1 bg-white"></div>
               </div>
             ))}
+            {/* Time Blocks Overlay */}
+            {dayBlocks.map(block => {
+              const blockStart = new Date(block.startTime);
+              const blockEnd = new Date(block.endTime);
+              const startHour = blockStart.getHours();
+              const startMin = blockStart.getMinutes();
+              const durationMin = (blockEnd.getTime() - blockStart.getTime()) / (1000 * 60);
+              const top = Math.max(0, (startHour - 6) * 96 + (startMin / 60) * 96); // h-24 is 96px
+              const height = Math.max(40, (durationMin / 60) * 96);
+
+              if (startHour < 6) return null;
+
+              return (
+                <div key={block.id}
+                  className="absolute left-20 right-4 bg-slate-200 border-l-4 border-slate-500 rounded-r-lg p-3 z-5"
+                  style={{
+                    top: `${top}px`,
+                    height: `${height}px`,
+                    backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(148,163,184,0.4) 8px, rgba(148,163,184,0.4) 16px)'
+                  }}
+                  title={`Blocked: ${block.title || block.type}`}>
+                  <div className="flex items-center gap-2 text-slate-600">
+                    <Lock size={16} />
+                    <div>
+                      <h4 className="font-bold text-base">{block.title || 'Blocked Time'}</h4>
+                      <p className="text-sm opacity-80">
+                        {blockStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {blockEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
             {/* Events logic mostly same as Week */}
             {dayEvents.map(event => {
               const startHour = event.start.getHours();
@@ -411,7 +502,7 @@ const CalendarView: React.FC = () => {
               return (
                 <div key={event.id}
                   onClick={() => { setEditingEvent(event); setIsModalOpen(true); }}
-                  className={`absolute left-24 right-4 rounded-lg border-l-4 shadow-sm p-3 cursor-pointer transition-transform hover:scale-[1.01]
+                  className={`absolute left-24 right-4 rounded-lg border-l-4 shadow-sm p-3 cursor-pointer transition-transform hover:scale-[1.01] z-10
                            ${event.type === 'Meeting' ? 'bg-indigo-50 border-indigo-500 text-indigo-900' :
                       event.type === 'Call' ? 'bg-amber-50 border-amber-500 text-amber-900' :
                         'bg-teal-50 border-teal-500 text-teal-900'}`}
