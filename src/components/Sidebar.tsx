@@ -149,12 +149,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isCollap
             >
                 {/* Brand Header */}
                 <div className={`h-20 flex items-center border-b border-slate-800/80 transition-all duration-300 shrink-0 ${isCollapsed ? 'justify-center px-0' : 'px-6'}`}>
-                    <div className="flex items-center gap-3.5">
-                        <div className="w-10 h-10 bg-gradient-to-tr from-teal-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-teal-900/20 flex-shrink-0">
-                            <div className="w-4 h-4 bg-white rounded-md transform rotate-45"></div>
-                        </div>
-                        <div className={`flex flex-col transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
-                            }`}>
+                    <div className="flex items-center gap-3">
+                        <img
+                            src="/logo.png"
+                            alt="Logo"
+                            className={`transition-all duration-300 ${isCollapsed ? 'w-10 h-10' : 'w-12 h-12'}`}
+                        />
+                        <div className={`flex flex-col transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
                             <span className="text-white font-bold text-lg tracking-tight whitespace-nowrap">
                                 Retirement<span className="text-teal-500">Right</span>
                             </span>
