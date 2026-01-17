@@ -67,7 +67,7 @@ Visualize and accelerate your sales process:
 
 ### 💬 **Communications Hub**
 Keep every conversation in context:
-- **Unified Inbox** — Emails, calls, and notes in one place
+- **Smart Communication** — Emails Automation, calls, and notes in one place
 - **Communication History** — Full timeline per client
 - **Quick Actions** — Log a call or send a follow-up in seconds
 
@@ -138,7 +138,7 @@ For questions, issues, or feature requests:
 
 | Contact | Details |
 |:-------:|:-------:|
-| **Email** | support@retirementright.com |
+| **Email** | info@websculptors.com |
 | **Phone** | Available upon request |
 
 ---
