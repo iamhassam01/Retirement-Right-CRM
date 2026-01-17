@@ -44,6 +44,13 @@ const CalendarView: React.FC = () => {
   });
   const [isCreatingBlock, setIsCreatingBlock] = useState(false);
 
+  // Error Modal State
+  const [errorModal, setErrorModal] = useState<{ isOpen: boolean; title: string; message: string }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
+
   // Fetch real data on mount and when date/view changes
   useEffect(() => {
     fetchEvents();
@@ -211,9 +218,23 @@ const CalendarView: React.FC = () => {
 
       setIsModalOpen(false);
       await fetchEvents();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save event:', error);
-      alert('Failed to save appointment. Please try again.');
+
+      // Check if this is a time block conflict error (409)
+      if (error?.message?.includes('blocked') || error?.response?.status === 409) {
+        setErrorModal({
+          isOpen: true,
+          title: 'Time Slot Blocked',
+          message: error.message || 'This time slot is blocked. Please choose a different time.'
+        });
+      } else {
+        setErrorModal({
+          isOpen: true,
+          title: 'Failed to Save Appointment',
+          message: error.message || 'An error occurred while saving the appointment. Please try again.'
+        });
+      }
     } finally {
       setIsCreating(false);
     }
@@ -921,6 +942,22 @@ const CalendarView: React.FC = () => {
               )}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal isOpen={errorModal.isOpen} onClose={() => setErrorModal({ isOpen: false, title: '', message: '' })} title={errorModal.title}>
+        <div className="p-4 text-center">
+          <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X size={32} className="text-rose-600" />
+          </div>
+          <p className="text-slate-600 mb-6">{errorModal.message}</p>
+          <button
+            onClick={() => setErrorModal({ isOpen: false, title: '', message: '' })}
+            className="w-full py-2.5 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            OK
+          </button>
         </div>
       </Modal>
     </div>
