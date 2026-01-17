@@ -11,4 +11,15 @@ export const activityService = {
         const response = await api.get<Activity[]>('/activities');
         return response.data;
     },
+
+    create: async (data: {
+        clientId: string;
+        type: string;
+        content?: string;
+        notes?: string;
+        metadata?: Record<string, any>;
+    }): Promise<Activity> => {
+        const response = await api.post<Activity>('/activities', data);
+        return response.data;
+    },
 };

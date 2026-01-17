@@ -20,4 +20,14 @@ export const taskService = {
     delete: async (id: string): Promise<void> => {
         await api.delete(`/tasks/${id}`);
     },
+
+    snooze: async (id: string, newDueDate: Date): Promise<Task> => {
+        const response = await api.put<Task>(`/tasks/${id}`, { dueDate: newDueDate.toISOString() });
+        return response.data;
+    },
+
+    getById: async (id: string): Promise<Task> => {
+        const response = await api.get<Task>(`/tasks/${id}`);
+        return response.data;
+    },
 };

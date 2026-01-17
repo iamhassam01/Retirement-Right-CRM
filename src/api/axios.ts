@@ -21,13 +21,14 @@ api.interceptors.request.use(
     }
 );
 
-// Add a response interceptor to handle 401s
+// Add a response interceptor to handle auth errors
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
         const originalRequest = error.config;
 
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+        // Handle 401 (Unauthorized) and 403 (Forbidden) - session expired
+        if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
             originalRequest._retry = true;
 
             try {
@@ -41,14 +42,34 @@ api.interceptors.response.use(
                     }
                 }
             } catch (refreshError) {
-                // Token refresh failed - redirect to login
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                // Token refresh failed - clear storage and redirect to login
+                console.warn('Session expired - redirecting to login');
             }
+
+            // Clear storage and redirect to login
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            // Show brief toast message before redirecting
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                // Create toast notification
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-4 right-4 bg-amber-500 text-white px-6 py-3 rounded-lg shadow-lg z-[9999] animate-in slide-in-from-top';
+                toast.innerHTML = 'Session expired. Redirecting to login...';
+                document.body.appendChild(toast);
+
+                // Redirect after brief delay
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1500);
+            }
+
+            return Promise.reject(new Error('Session expired'));
         }
+
         return Promise.reject(error);
     }
 );
 
 export default api;
+

@@ -364,16 +364,25 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
           </button>
         </div>
         {isExpanded && (
-          <div className="bg-slate-50/50 border-t border-slate-100 p-6 space-y-6">
+          <div className="bg-slate-50/50 border-t border-slate-100 p-6 space-y-6" onClick={(e) => e.stopPropagation()}>
             {!hasRecording && !hasAnalysis && !hasTranscript && (
               <p className="text-sm text-slate-500 italic text-center">No additional details available for this call.</p>
             )}
 
             {activity.recordingUrl && (
-              <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg">
-                <Volume2 size={18} className="text-slate-500" />
-                <audio controls className="flex-1 h-8">
+              <div className="flex items-center gap-3 p-3 bg-slate-100 rounded-lg" onClick={(e) => e.stopPropagation()}>
+                <Volume2 size={18} className="text-slate-500 flex-shrink-0" />
+                <audio
+                  key={`audio-${activity.id}`}
+                  controls
+                  className="flex-1 h-8"
+                  preload="metadata"
+                  onPlay={(e) => e.stopPropagation()}
+                  onPause={(e) => e.stopPropagation()}
+                >
                   <source src={activity.recordingUrl} type="audio/mpeg" />
+                  <source src={activity.recordingUrl} type="audio/wav" />
+                  Your browser does not support the audio element.
                 </audio>
               </div>
             )}
@@ -392,9 +401,14 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
             {transcript && transcript.length > 0 ? (
               <div className="border-t border-slate-200 pt-4">
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-2">Transcript</p>
-                <div className="space-y-2 max-h-60 overflow-y-auto bg-white p-3 rounded-lg border border-slate-200">
+                <div
+                  className="space-y-2 max-h-60 overflow-y-auto bg-white p-3 rounded-lg border border-slate-200 scroll-smooth"
+                  onScroll={(e) => e.stopPropagation()}
+                  onWheel={(e) => e.stopPropagation()}
+                  onTouchMove={(e) => e.stopPropagation()}
+                >
                   {transcript.map((line: any, i: number) => (
-                    <div key={i} className="text-sm">
+                    <div key={`${activity.id}-line-${i}`} className="text-sm">
                       <span className={`font-bold ${line.speaker === 'AI' ? 'text-indigo-600' : 'text-slate-700'}`}>{line.speaker}: </span>
                       <span className="text-slate-600">{line.text}</span>
                     </div>

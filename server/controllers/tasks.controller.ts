@@ -6,19 +6,26 @@ const prisma = new PrismaClient();
 
 const taskSchema = z.object({
     title: z.string().min(1),
-    due: z.string().optional(), // ISO Date string
+    due: z.string().optional(), // ISO Date string (frontend sends as 'due')
+    dueDate: z.string().optional(), // ISO Date string (alternative field name)
     type: z.string().optional(),
     priority: z.enum(['High', 'Medium', 'Low']).optional(),
     clientName: z.string().optional(), // For display
     clientId: z.string().optional(), // Link to client
     status: z.string().optional(),
+    description: z.string().optional(), // Task description/notes
 });
 
 export const getTasks = async (req: Request, res: Response) => {
     try {
         const tasks = await prisma.task.findMany({
             orderBy: { createdAt: 'desc' },
-            take: 20 // Limit for now
+            take: 50, // Increased limit for better visibility
+            include: {
+                client: {
+                    select: { id: true, name: true }
+                }
+            }
         });
         res.json(tasks);
     } catch (error) {
@@ -29,20 +36,52 @@ export const getTasks = async (req: Request, res: Response) => {
 export const createTask = async (req: Request, res: Response) => {
     try {
         const data = taskSchema.parse(req.body);
-        // Ensure user is linked if needed, for now just create
-        // Note: Schema might need userId if tasks are user-specific
+
+        // Map 'due' to 'dueDate' for Prisma
+        const dueDate = data.due || data.dueDate ? new Date(data.due || data.dueDate!) : undefined;
+
         const task = await prisma.task.create({
             data: {
-                ...data,
-                assignedToId: (req as any).user?.id, // Assuming auth middleware adds user
+                title: data.title,
+                description: data.description,
+                dueDate: dueDate,
+                type: data.type,
+                priority: data.priority || 'Medium',
+                clientId: data.clientId || undefined,
+                assignedToId: (req as any).user?.id,
                 status: 'Pending'
             }
         });
+
+        // Create notification for the reminder if there's a due date
+        if (dueDate) {
+            try {
+                await prisma.notification.create({
+                    data: {
+                        userId: (req as any).user?.id,
+                        title: `Task Reminder: ${data.title}`,
+                        message: data.description || `You have a task due: ${data.title}`,
+                        type: 'task_reminder',
+                        isRead: false,
+                        metadata: JSON.stringify({
+                            taskId: task.id,
+                            dueDate: dueDate.toISOString(),
+                            clientId: data.clientId
+                        })
+                    }
+                });
+            } catch (notifError) {
+                console.error('Failed to create notification:', notifError);
+                // Continue - task was still created successfully
+            }
+        }
+
         res.status(201).json(task);
     } catch (error) {
         if (error instanceof z.ZodError) {
             return res.status(400).json({ error: error.issues });
         }
+        console.error('Task creation error:', error);
         res.status(500).json({ error: 'Failed to create task' });
     }
 };
