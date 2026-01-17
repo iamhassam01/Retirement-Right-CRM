@@ -6,7 +6,7 @@
 
 ---
 
-<img src="https://via.placeholder.com/900x400/0F172A/14B8A6?text=Retirement+Right+CRM" alt="Retirement Right CRM Banner" width="100%" />
+<img src="public/banner.png" alt="Retirement Right CRM Banner" width="100%" />
 
 ---
 
@@ -112,11 +112,11 @@ Make it yours:
 
 | Dashboard | Client Profile |
 |:---------:|:--------------:|
-| ![Dashboard](https://via.placeholder.com/400x250/0F172A/FFFFFF?text=Dashboard) | ![Client Profile](https://via.placeholder.com/400x250/0F172A/FFFFFF?text=Client+Profile) |
+| ![Dashboard](public/screenshots/dashboard.png) | ![Client Profile](public/screenshots/client_profile.png) |
 
 | Calendar | Pipeline |
 |:--------:|:--------:|
-| ![Calendar](https://via.placeholder.com/400x250/0F172A/FFFFFF?text=Calendar) | ![Pipeline](https://via.placeholder.com/400x250/0F172A/FFFFFF?text=Pipeline) |
+| ![Calendar](public/screenshots/calendar.png) | ![Pipeline](public/screenshots/pipeline.png) |
 
 </div>
 
@@ -138,7 +138,7 @@ For questions, issues, or feature requests:
 
 | Contact | Details |
 |:-------:|:-------:|
-| **Email** | info@websculptors.com |
+| **Email** | info@websculptors.co |
 | **Phone** | Available upon request |
 
 ---
