@@ -97,15 +97,15 @@ const Team: React.FC = () => {
   }
 
   return (
-    <div className="p-8 h-full flex flex-col animate-fade-in">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-navy-900">Team & Access</h2>
-          <p className="text-slate-500 text-sm">Manage user roles, permissions, and compliance access.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Team & Access</h2>
+          <p className="text-slate-500 text-xs sm:text-sm">Manage user roles, permissions, and compliance access.</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800 active:bg-navy-700 min-h-[44px]"
         >
           <UserPlus size={16} /> Add Member
         </button>
@@ -113,54 +113,84 @@ const Team: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto flex-1">
         {members.length > 0 ? (
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">User</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Access Level</th>
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Joined</th>
-                <th className="px-6 py-4 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {members.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-navy-600 rounded-full flex items-center justify-center text-white font-bold">
-                        {member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-navy-900">{member.name}</p>
-                        <p className="text-xs text-slate-500">{member.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
-                      <Shield size={10} /> {getRoleLabel(member.role)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-slate-500">
-                    {new Date(member.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirmMember(member);
-                      }}
-                      className="text-slate-400 hover:text-rose-600 transition-colors"
-                      title="Remove Member"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
+          <>
+            {/* Desktop Table */}
+            <table className="hidden sm:table w-full text-left border-collapse">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">User</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Access Level</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Joined</th>
+                  <th className="px-6 py-4 text-right"></th>
                 </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {members.map((member) => (
+                  <tr key={member.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-navy-600 rounded-full flex items-center justify-center text-white font-bold">
+                          {member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-navy-900">{member.name}</p>
+                          <p className="text-xs text-slate-500">{member.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                        <Shield size={10} /> {getRoleLabel(member.role)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {new Date(member.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteConfirmMember(member);
+                        }}
+                        className="text-slate-400 hover:text-rose-600 transition-colors"
+                        title="Remove Member"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {/* Mobile Cards */}
+            <div className="sm:hidden divide-y divide-slate-100">
+              {members.map((member) => (
+                <div key={member.id} className="p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-navy-600 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0">
+                      {member.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy-900 truncate">{member.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{member.email}</p>
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium mt-1 ${getRoleColor(member.role)}`}>
+                        <Shield size={10} /> {getRoleLabel(member.role)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmMember(member)}
+                    className="p-2 text-slate-400 hover:text-rose-600 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    title="Remove Member"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         ) : (
           <div className="text-center py-16">
             <UserPlus size={48} className="mx-auto mb-4 text-slate-300" />
@@ -184,7 +214,7 @@ const Team: React.FC = () => {
               type="text"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
               placeholder="e.g. John Smith"
             />
           </div>

@@ -295,7 +295,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                             </p>
 
                             <div className="bg-slate-50 rounded-lg p-4 space-y-3">
-                                <div className="grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase pb-2 border-b border-slate-200">
+                                <div className="hidden sm:grid grid-cols-12 gap-4 text-xs font-bold text-slate-500 uppercase pb-2 border-b border-slate-200">
                                     <div className="col-span-4">Your Column</div>
                                     <div className="col-span-1 text-center">→</div>
                                     <div className="col-span-4">CRM Field</div>
@@ -303,14 +303,15 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                 </div>
 
                                 {mappings.map((mapping, idx) => (
-                                    <div key={idx} className="grid grid-cols-12 gap-4 items-center">
-                                        <div className="col-span-4 font-medium text-navy-900 truncate" title={mapping.sourceColumn}>
+                                    <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-4 sm:items-center p-3 sm:p-0 bg-white sm:bg-transparent rounded-lg sm:rounded-none border sm:border-0 border-slate-200">
+                                        <div className="sm:col-span-4 font-medium text-navy-900 truncate text-sm" title={mapping.sourceColumn}>
+                                            <span className="sm:hidden text-xs text-slate-500 block">Source:</span>
                                             {mapping.sourceColumn}
                                         </div>
-                                        <div className="col-span-1 text-center text-slate-400">
+                                        <div className="hidden sm:block sm:col-span-1 text-center text-slate-400">
                                             <ArrowRight size={16} />
                                         </div>
-                                        <div className="col-span-4">
+                                        <div className="sm:col-span-4">
                                             <select
                                                 value={mapping.targetField}
                                                 onChange={(e) => {
@@ -318,7 +319,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                                     newMappings[idx].targetField = e.target.value;
                                                     setMappings(newMappings);
                                                 }}
-                                                className={`w-full px-3 py-2 border rounded-lg text-sm ${mapping.targetField === 'name' ? 'border-teal-500 bg-teal-50' : 'border-slate-200'
+                                                className={`w-full px-3 py-2.5 text-base border rounded-lg min-h-[44px] ${mapping.targetField === 'name' ? 'border-teal-500 bg-teal-50' : 'border-slate-200'
                                                     }`}
                                             >
                                                 {TARGET_FIELDS.map(f => (
@@ -326,7 +327,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="col-span-3">
+                                        <div className="sm:col-span-3">
                                             <select
                                                 value={mapping.transform || 'none'}
                                                 onChange={(e) => {
@@ -334,7 +335,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                                     newMappings[idx].transform = e.target.value as any;
                                                     setMappings(newMappings);
                                                 }}
-                                                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
+                                                className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg min-h-[44px]"
                                             >
                                                 {TRANSFORMS.map(t => (
                                                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -357,7 +358,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                     {/* Step 3: Preview */}
                     {step === 3 && preview && (
                         <div className="space-y-4">
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                                 <div className="bg-slate-50 p-4 rounded-lg text-center">
                                     <p className="text-2xl font-bold text-navy-900">{preview.totalRows}</p>
                                     <p className="text-xs text-slate-500">Total Records</p>
@@ -510,7 +511,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ isOpen, onClose, onComplete
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                                 <div className="bg-slate-50 p-4 rounded-lg">
                                     <p className="text-2xl font-bold text-navy-900">{importResult.totalProcessed}</p>
                                     <p className="text-xs text-slate-500">Total Processed</p>

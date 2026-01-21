@@ -226,16 +226,16 @@ const Communications: React.FC = () => {
   }
 
   return (
-    <div className="p-8 h-full flex flex-col animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-navy-900">Communications</h2>
-          <p className="text-slate-500 text-sm">Create templates and send bulk emails via automation.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Communications</h2>
+          <p className="text-slate-500 text-xs sm:text-sm">Create templates and send bulk emails via automation.</p>
         </div>
         {activeTab === 'templates' && (
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 active:bg-teal-800 min-h-[44px]"
           >
             <Plus size={16} /> New Template
           </button>
@@ -244,19 +244,19 @@ const Communications: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col flex-1">
         {/* Tabs */}
-        <div className="border-b border-slate-200 px-6">
-          <div className="flex gap-8">
+        <div className="border-b border-slate-200 px-4 sm:px-6 overflow-x-auto">
+          <div className="flex gap-4 sm:gap-8">
             <button
               onClick={() => { setActiveTab('templates'); setStep(1); }}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'templates' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-navy-900'}`}
+              className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${activeTab === 'templates' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-navy-900'}`}
             >
               Templates ({templates.length})
             </button>
             <button
               onClick={() => setActiveTab('automation')}
-              className={`py-4 text-sm font-medium border-b-2 transition-colors ${activeTab === 'automation' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-navy-900'}`}
+              className={`py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap min-h-[48px] ${activeTab === 'automation' ? 'border-teal-500 text-teal-600' : 'border-transparent text-slate-500 hover:text-navy-900'}`}
             >
-              Automation Log ({logs.length})
+              Automation ({logs.length})
             </button>
           </div>
         </div>
@@ -526,8 +526,8 @@ const Communications: React.FC = () => {
 
       {/* Template Modal with Variable Panel */}
       <Modal isOpen={isTemplateModalOpen} onClose={() => setIsTemplateModalOpen(false)} title={editingTemplate ? 'Edit Template' : 'Create Template'}>
-        <div className="grid grid-cols-3 gap-6">
-          <div className="col-span-2 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+          <div className="lg:col-span-2 space-y-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Template Name</label>
               <input

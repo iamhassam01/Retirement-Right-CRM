@@ -129,30 +129,44 @@ const Documents: React.FC = () => {
    }
 
    return (
-      <div className="p-8 h-full flex flex-col animate-fade-in">
-         <div className="flex justify-between items-center mb-8">
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in">
+         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
             <div>
-               <h2 className="text-2xl font-bold text-navy-900">Document Vault</h2>
-               <p className="text-slate-500 text-sm">Secure storage for client contracts, reports, and compliance.</p>
+               <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Document Vault</h2>
+               <p className="text-slate-500 text-xs sm:text-sm">Secure storage for client contracts, reports, and compliance.</p>
             </div>
             <button
                onClick={() => setIsModalOpen(true)}
-               className="flex items-center gap-2 px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800"
+               className="flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800 active:bg-navy-700 min-h-[44px]"
             >
                <UploadCloud size={16} /> Upload File
             </button>
          </div>
 
-         <div className="flex gap-6 h-full">
-            {/* Sidebar - Folders */}
-            <div className="w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full">
+         {/* Mobile Category Tabs */}
+         <div className="lg:hidden flex overflow-x-auto gap-2 mb-4 pb-2 -mx-4 px-4 scrollbar-hide">
+            {categories.map((folder) => (
+               <button
+                  key={folder}
+                  onClick={() => setSelectedCategory(folder)}
+                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${selectedCategory === folder ? 'bg-teal-50 text-teal-700' : 'bg-slate-100 text-slate-600 active:bg-slate-200'}`}
+               >
+                  <Folder size={16} className={selectedCategory === folder ? 'fill-teal-200 text-teal-600' : 'text-slate-400'} />
+                  {folder === 'All' ? 'All' : folder}
+               </button>
+            ))}
+         </div>
+
+         <div className="flex gap-6 flex-1 min-h-0">
+            {/* Desktop Sidebar - Hidden on mobile */}
+            <div className="hidden lg:block w-64 bg-white rounded-xl shadow-sm border border-slate-200 p-4 h-full">
                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-4 px-2">Folders</h3>
                <div className="space-y-1">
                   {categories.map((folder, i) => (
                      <button
                         key={folder}
                         onClick={() => setSelectedCategory(folder)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCategory === folder ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${selectedCategory === folder ? 'bg-teal-50 text-teal-700' : 'text-slate-600 hover:bg-slate-50'}`}
                      >
                         <Folder size={18} className={selectedCategory === folder ? 'fill-teal-200 text-teal-600' : 'text-slate-400'} />
                         {folder === 'All' ? 'All Documents' : folder}
@@ -162,21 +176,21 @@ const Documents: React.FC = () => {
             </div>
 
             {/* Main File Area */}
-            <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
-               <div className="p-4 border-b border-slate-200 flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col min-w-0">
+               <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
+                  <div className="hidden sm:flex items-center gap-2 text-sm text-slate-500">
                      <span className="hover:text-navy-900 cursor-pointer">Documents</span>
                      <span>/</span>
                      <span className="font-medium text-navy-900">{selectedCategory === 'All' ? 'All Documents' : selectedCategory}</span>
                   </div>
-                  <div className="relative">
+                  <div className="relative w-full sm:w-auto">
                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                      <input
                         type="text"
                         placeholder="Filter files..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        className="w-full sm:w-auto pl-9 pr-4 py-2.5 rounded-lg border border-slate-200 text-base focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                      />
                   </div>
                </div>

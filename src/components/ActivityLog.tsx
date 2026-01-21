@@ -170,12 +170,12 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ onSelectClient }) => {
     ];
 
     return (
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
             {/* Header */}
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-navy-900">Activity Log</h1>
-                    <p className="text-slate-500 mt-1">Track all activities across your CRM</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-navy-900">Activity Log</h1>
+                    <p className="text-slate-500 text-xs sm:text-sm mt-1">Track all activities across your CRM</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Clock size={16} className="text-slate-400" />
@@ -186,15 +186,15 @@ const ActivityLog: React.FC<ActivityLogProps> = ({ onSelectClient }) => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6">
-                <div className="flex gap-2 flex-wrap">
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 mb-6">
+                <div className="flex gap-2 flex-wrap overflow-x-auto -mx-1 px-1 scrollbar-hide">
                     {filterOptions.map(option => (
                         <button
                             key={option.value}
                             onClick={() => setFilter(option.value)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === option.value
+                            className={`flex-shrink-0 px-3 sm:px-4 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] ${filter === option.value
                                 ? 'bg-teal-500 text-white'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
                                 }`}
                         >
                             {option.label}

@@ -66,16 +66,16 @@ const Reports: React.FC = () => {
    const colorScheme = ['bg-teal-500', 'bg-teal-400', 'bg-navy-800', 'bg-slate-400'];
 
    return (
-      <div className="p-8 h-full flex flex-col animate-fade-in overflow-y-auto">
-         <div className="flex justify-between items-center mb-8">
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in overflow-y-auto">
+         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
             <div>
-               <h2 className="text-2xl font-bold text-navy-900">Performance Insights</h2>
-               <p className="text-slate-500 text-sm">Key metrics on portfolio growth and client acquisition.</p>
+               <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Performance Insights</h2>
+               <p className="text-slate-500 text-xs sm:text-sm">Key metrics on portfolio growth and client acquisition.</p>
             </div>
             <select
                value={timeRange}
                onChange={(e) => setTimeRange(parseInt(e.target.value))}
-               className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer"
+               className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer min-h-[44px]"
             >
                <option value={30}>Last 30 Days</option>
                <option value={90}>Quarter to Date</option>
@@ -83,13 +83,13 @@ const Reports: React.FC = () => {
             </select>
          </div>
 
-         <div className="grid grid-cols-4 gap-6 mb-8">
+         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
             {stats.map((stat, i) => (
-               <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
-                  <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                  <div className="flex items-end justify-between mt-2">
-                     <h3 className="text-2xl font-bold text-navy-900">{stat.value}</h3>
-                     <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full ${stat.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+               <div key={i} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-100 transition-all hover:shadow-md">
+                  <p className="text-xs sm:text-sm font-medium text-slate-500">{stat.label}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mt-2 gap-2">
+                     <h3 className="text-xl sm:text-2xl font-bold text-navy-900">{stat.value}</h3>
+                     <span className={`flex items-center text-[10px] sm:text-xs font-semibold px-2 py-1 rounded-full ${stat.isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                         {stat.isPositive ? <ArrowUp size={12} className="mr-1" /> : <ArrowDown size={12} className="mr-1" />}
                         {stat.change}
                      </span>
@@ -98,7 +98,7 @@ const Reports: React.FC = () => {
             ))}
          </div>
 
-         <div className="grid grid-cols-2 gap-8 mb-8">
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8">
             {/* Dynamic AUM Chart Area */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                <div className="flex justify-between items-center mb-6">
@@ -158,7 +158,7 @@ const Reports: React.FC = () => {
          {overview && overview.pipelineDistribution.length > 0 && (
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
                <h3 className="font-bold text-navy-900 mb-4">Pipeline Distribution</h3>
-               <div className="grid grid-cols-6 gap-4">
+               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                   {overview.pipelineDistribution.map((stage, i) => (
                      <div key={stage.stage} className="text-center p-4 bg-slate-50 rounded-lg">
                         <p className="text-2xl font-bold text-navy-900">{stage.count}</p>
