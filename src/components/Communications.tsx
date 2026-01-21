@@ -5,6 +5,7 @@ import { Mail, Plus, Clock, CheckCircle2, Loader2, Trash2, Send, Users, ChevronR
 import Modal from './Modal';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 interface Client {
   id: string;
@@ -26,6 +27,7 @@ const AVAILABLE_VARIABLES = [
 ];
 
 const Communications: React.FC = () => {
+  const { isMobile } = useResponsiveView();
   const [activeTab, setActiveTab] = useState<'templates' | 'automation'>('templates');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [logs, setLogs] = useState<AutomationLog[]>([]);
@@ -261,7 +263,7 @@ const Communications: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto">
           {/* ========== TEMPLATES TAB ========== */}
           {activeTab === 'templates' && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -302,17 +304,17 @@ const Communications: React.FC = () => {
           {/* ========== AUTOMATION TAB ========== */}
           {activeTab === 'automation' && (
             <div>
-              {/* Step Progress */}
-              <div className="flex items-center gap-4 mb-8">
+              {/* Step Progress - Responsive */}
+              <div className="flex items-center gap-2 sm:gap-4 mb-6 sm:mb-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible scrollbar-hide">
                 {[1, 2, 3].map(s => (
-                  <div key={s} className="flex items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= s ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                      {step > s ? <CheckCircle2 size={16} /> : s}
+                  <div key={s} className="flex items-center flex-shrink-0">
+                    <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold ${step >= s ? 'bg-teal-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                      {step > s ? <CheckCircle2 size={14} /> : s}
                     </div>
-                    <span className={`ml-2 text-sm ${step >= s ? 'text-navy-900 font-medium' : 'text-slate-400'}`}>
-                      {s === 1 ? 'Select Template' : s === 2 ? 'Select Recipients' : 'Send'}
+                    <span className={`ml-1.5 sm:ml-2 text-xs sm:text-sm whitespace-nowrap ${step >= s ? 'text-navy-900 font-medium' : 'text-slate-400'}`}>
+                      {s === 1 ? (isMobile ? 'Template' : 'Select Template') : s === 2 ? (isMobile ? 'Recipients' : 'Select Recipients') : 'Send'}
                     </span>
-                    {s < 3 && <ChevronRight size={16} className="mx-4 text-slate-300" />}
+                    {s < 3 && <ChevronRight size={14} className="mx-1.5 sm:mx-3 text-slate-300 flex-shrink-0" />}
                   </div>
                 ))}
               </div>

@@ -617,7 +617,7 @@ const CalendarView: React.FC = () => {
             <button onClick={() => navigateDate('next')} className="p-2 hover:bg-slate-100 active:bg-slate-200 rounded text-slate-500 min-w-[40px] min-h-[40px] flex items-center justify-center"><ChevronRight size={20} /></button>
           </div>
 
-          {/* View Appointments - Hidden on mobile, icon only on tablet */}
+          {/* View Appointments - Icon only on mobile */}
           <button
             onClick={async () => {
               setIsAppointmentsModalOpen(true);
@@ -631,10 +631,11 @@ const CalendarView: React.FC = () => {
                 setIsLoadingUpcoming(false);
               }
             }}
-            className="hidden md:flex px-3 lg:px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
+            className="flex px-3 lg:px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
+            title="View Appointments"
           >
             <List size={16} />
-            <span className="hidden lg:inline">View Appointments</span>
+            <span className="hidden md:inline">Appointments</span>
           </button>
 
           {/* New Appointment Button */}
@@ -647,16 +648,17 @@ const CalendarView: React.FC = () => {
             <span className="sm:hidden">New</span>
           </button>
 
-          {/* Block Time Button - Hidden on mobile */}
+          {/* Block Time Button - Icon only on mobile */}
           <button
             onClick={() => {
               setBlockForm({ ...blockForm, date: currentDate.toISOString().split('T')[0] });
               setIsBlockModalOpen(true);
             }}
-            className="hidden sm:flex px-3 lg:px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
+            className="flex px-3 lg:px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
+            title="Block Time"
           >
             <Lock size={16} />
-            <span className="hidden lg:inline">Block Time</span>
+            <span className="hidden md:inline">Block Time</span>
           </button>
         </div>
       </div>
