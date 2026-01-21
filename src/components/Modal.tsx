@@ -7,8 +7,8 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  /** If true, modal takes full screen on mobile (default: true) */
-  fullScreenOnMobile?: boolean;
+  /** Size variant: 'sm' (400px), 'md' (512px), 'lg' (640px), 'xl' (768px) */
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -16,9 +16,17 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  fullScreenOnMobile = true
+  size = 'md'
 }) => {
-  const { isMobile, prefersReducedMotion } = useResponsiveView();
+  const { prefersReducedMotion } = useResponsiveView();
+
+  // Size mapping
+  const sizeClasses = {
+    sm: 'sm:max-w-sm',
+    md: 'sm:max-w-lg',
+    lg: 'sm:max-w-xl',
+    xl: 'sm:max-w-2xl'
+  };
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -46,38 +54,31 @@ const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  const isFullScreen = isMobile && fullScreenOnMobile;
   const animationClass = prefersReducedMotion ? '' : 'animate-in fade-in zoom-in-95 duration-200';
-  const mobileAnimationClass = prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-4 duration-300';
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      {/* Backdrop */}
+      {/* Backdrop - Same blur on all screen sizes */}
       <div
         className={`absolute inset-0 bg-navy-900/40 backdrop-blur-sm ${prefersReducedMotion ? '' : 'transition-opacity'}`}
         onClick={onClose}
         aria-hidden="true"
       ></div>
 
-      {/* Modal Content */}
+      {/* Modal Content - Same visual design on all screens */}
       <div
         className={`relative bg-white overflow-hidden shadow-2xl flex flex-col
-          ${isFullScreen
-            ? `w-full h-full max-h-full rounded-none ${mobileAnimationClass}`
-            : `w-full max-w-lg mx-4 my-4 max-h-[90vh] rounded-xl ${animationClass}`
-          }`}
+          w-full ${sizeClasses[size]} max-h-[calc(100vh-24px)] sm:max-h-[90vh] rounded-xl ${animationClass}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Sticky on mobile */}
-        <div className={`flex justify-between items-center px-4 sm:px-6 py-4 border-b border-slate-100 shrink-0 ${isFullScreen ? 'sticky top-0 bg-white z-10' : ''}`}
-          style={isFullScreen ? { paddingTop: 'max(env(safe-area-inset-top), 16px)' } : undefined}
-        >
-          <h3 id="modal-title" className="text-lg font-bold text-navy-900 truncate pr-2">{title}</h3>
+        {/* Header */}
+        <div className="flex justify-between items-center px-4 sm:px-6 py-4 border-b border-slate-100 shrink-0 bg-white">
+          <h3 id="modal-title" className="text-base sm:text-lg font-bold text-navy-900 truncate pr-2">{title}</h3>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-rose-500 active:text-rose-600 transition-colors p-2 rounded-full hover:bg-slate-50 active:bg-slate-100 min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
@@ -88,10 +89,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* Content - Scrollable */}
-        <div
-          className={`flex-1 overflow-y-auto ${isFullScreen ? 'px-4 py-4' : 'p-4 sm:p-6'}`}
-          style={isFullScreen ? { paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' } : undefined}
-        >
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {children}
         </div>
       </div>
