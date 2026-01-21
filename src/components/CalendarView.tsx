@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown, List, Trash2, Edit3, Loader2, Calendar as CalendarIcon, Clock, Lock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, RefreshCw, Bot, ChevronUp, ChevronDown, List, Trash2, Edit3, Loader2, Calendar as CalendarIcon, Clock, Lock, Plus } from 'lucide-react';
 import { getCalendarEvents, createEvent } from '../services/db';
 import { teamService } from '../services/team.service';
 import { eventService } from '../services/event.service';
@@ -7,12 +7,14 @@ import { clientService } from '../services/client.service';
 import { timeBlockService, TimeBlock } from '../services/timeblock.service';
 import { CalendarEvent, Client } from '../types';
 import Modal from './Modal';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 type CalendarViewType = 'month' | 'week' | 'day';
 
 const CalendarView: React.FC = () => {
   const [view, setView] = useState<CalendarViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const { isMobile, isTablet, isMobileOrTablet } = useResponsiveView();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -546,25 +548,42 @@ const CalendarView: React.FC = () => {
   };
 
   return (
-    <div className="p-8 h-full flex flex-col animate-fade-in gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in gap-4 sm:gap-6">
       {/* Top Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-6">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+        {/* Left Section: Title + View Switcher */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-navy-900">Advisor Schedule</h2>
-            <p className="text-slate-500 text-sm">Manage your time and availability</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Advisor Schedule</h2>
+            <p className="text-slate-500 text-xs sm:text-sm">Manage your time and availability</p>
           </div>
 
-          {/* View Switcher */}
+          {/* View Switcher - Touch Friendly */}
           <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-            <button onClick={() => setView('month')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'month' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900'}`}>Month</button>
-            <button onClick={() => setView('week')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'week' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900'}`}>Week</button>
-            <button onClick={() => setView('day')} className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'day' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900'}`}>Day</button>
+            <button
+              onClick={() => setView('month')}
+              className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all min-h-[44px] ${view === 'month' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900 active:bg-white/50'}`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => setView('week')}
+              className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all min-h-[44px] ${view === 'week' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900 active:bg-white/50'}`}
+            >
+              Week
+            </button>
+            <button
+              onClick={() => setView('day')}
+              className={`px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all min-h-[44px] ${view === 'day' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-900 active:bg-white/50'}`}
+            >
+              Day
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
-          {/* Availability Switch */}
+        {/* Right Section: Controls */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+          {/* Availability Switch - Hidden on smallest mobile */}
           <div
             onClick={async () => {
               if (isToggling) return;
@@ -577,7 +596,7 @@ const CalendarView: React.FC = () => {
                 setIsToggling(false);
               }
             }}
-            className={`group flex items-center gap-3 pl-1.5 pr-4 py-1.5 rounded-full border cursor-pointer select-none transition-all duration-300 ${isAvailable ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}
+            className={`hidden sm:flex group items-center gap-2 sm:gap-3 pl-1.5 pr-3 sm:pr-4 py-1.5 rounded-full border cursor-pointer select-none transition-all duration-300 min-h-[44px] ${isAvailable ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}
           >
             <div className={`w-10 h-6 rounded-full relative transition-colors duration-300 ${isAvailable ? 'bg-emerald-500' : 'bg-slate-300'}`}>
               <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAvailable ? 'translate-x-4' : 'translate-x-0'}`}></div>
@@ -585,20 +604,20 @@ const CalendarView: React.FC = () => {
             <span className={`text-xs font-bold uppercase tracking-wide ${isAvailable ? 'text-emerald-700' : 'text-slate-500'}`}>{isAvailable ? 'Online' : 'Offline'}</span>
           </div>
 
-          <div className="h-8 w-px bg-slate-200"></div>
+          <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
 
           {/* Navigation */}
           <div className="flex items-center bg-white rounded-lg border border-slate-200 p-1 shadow-sm">
-            <button onClick={() => navigateDate('prev')} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronLeft size={20} /></button>
-            <span className="px-3 text-sm font-semibold text-navy-900 min-w-[120px] text-center">
-              {view === 'month' ? currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-                : view === 'week' ? `Week of ${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-                  : currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+            <button onClick={() => navigateDate('prev')} className="p-2 hover:bg-slate-100 active:bg-slate-200 rounded text-slate-500 min-w-[40px] min-h-[40px] flex items-center justify-center"><ChevronLeft size={20} /></button>
+            <span className="px-2 sm:px-3 text-xs sm:text-sm font-semibold text-navy-900 min-w-[100px] sm:min-w-[120px] text-center">
+              {view === 'month' ? currentDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                : view === 'week' ? `${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                  : currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
-            <button onClick={() => navigateDate('next')} className="p-1 hover:bg-slate-100 rounded text-slate-500"><ChevronRight size={20} /></button>
+            <button onClick={() => navigateDate('next')} className="p-2 hover:bg-slate-100 active:bg-slate-200 rounded text-slate-500 min-w-[40px] min-h-[40px] flex items-center justify-center"><ChevronRight size={20} /></button>
           </div>
 
-
+          {/* View Appointments - Hidden on mobile, icon only on tablet */}
           <button
             onClick={async () => {
               setIsAppointmentsModalOpen(true);
@@ -612,23 +631,32 @@ const CalendarView: React.FC = () => {
                 setIsLoadingUpcoming(false);
               }
             }}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 transition-all active:scale-95 flex items-center gap-2"
+            className="hidden md:flex px-3 lg:px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-teal-700 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
           >
-            <List size={16} /> View Appointments
+            <List size={16} />
+            <span className="hidden lg:inline">View Appointments</span>
           </button>
 
-          <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-navy-800 transition-all active:scale-95">
-            + New Appointment
+          {/* New Appointment Button */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-navy-900 text-white rounded-lg text-xs sm:text-sm font-medium shadow-sm hover:bg-navy-800 transition-all active:scale-95 min-h-[44px]"
+          >
+            <Plus size={16} className="sm:hidden" />
+            <span className="hidden sm:inline">+ New Appointment</span>
+            <span className="sm:hidden">New</span>
           </button>
 
+          {/* Block Time Button - Hidden on mobile */}
           <button
             onClick={() => {
               setBlockForm({ ...blockForm, date: currentDate.toISOString().split('T')[0] });
               setIsBlockModalOpen(true);
             }}
-            className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-all active:scale-95 flex items-center gap-2"
+            className="hidden sm:flex px-3 lg:px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-slate-600 transition-all active:scale-95 items-center gap-2 min-h-[44px]"
           >
-            <Lock size={16} /> Block Time
+            <Lock size={16} />
+            <span className="hidden lg:inline">Block Time</span>
           </button>
         </div>
       </div>
@@ -649,45 +677,45 @@ const CalendarView: React.FC = () => {
         <form key={editingEvent ? editingEvent.id : 'new'} onSubmit={handleCreateEvent} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Appointment Title</label>
-            <input name="title" type="text" defaultValue={editingEvent?.title || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g. Portfolio Review" required />
+            <input name="title" type="text" defaultValue={editingEvent?.title || ''} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base" placeholder="e.g. Portfolio Review" required />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
-              <input name="date" type="date" defaultValue={editingEvent ? new Date(editingEvent.start).toISOString().split('T')[0] : ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+              <input name="date" type="date" defaultValue={editingEvent ? new Date(editingEvent.start).toISOString().split('T')[0] : ''} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Time</label>
-              <input name="time" type="time" defaultValue={editingEvent ? `${new Date(editingEvent.start).getHours().toString().padStart(2, '0')}:${new Date(editingEvent.start).getMinutes().toString().padStart(2, '0')}` : ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" required />
+              <input name="time" type="time" defaultValue={editingEvent ? `${new Date(editingEvent.start).getHours().toString().padStart(2, '0')}:${new Date(editingEvent.start).getMinutes().toString().padStart(2, '0')}` : ''} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base" required />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-navy-900 mb-1">Type</label>
-            <select name="type" defaultValue={editingEvent?.type || 'Meeting'} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <select name="type" defaultValue={editingEvent?.type || 'Meeting'} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base">
               <option value="Meeting">Meeting</option>
               <option value="Call">Call</option>
               <option value="Workshop">Workshop</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Client</label>
-              <select name="clientId" defaultValue={editingEvent?.clientId || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <select name="clientId" defaultValue={editingEvent?.clientId || ''} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base">
                 <option value="">Select Client...</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-navy-900 mb-1">Advisor</label>
-              <select name="advisorId" defaultValue={editingEvent?.advisorId || ''} className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+              <select name="advisorId" defaultValue={editingEvent?.advisorId || ''} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-base">
                 <option value="">Select Advisor...</option>
                 {advisors.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
           </div>
           <div className="pt-4 flex gap-3">
-            <button type="button" onClick={() => { setIsModalOpen(false); setEditingEvent(null); }} className="flex-1 py-2 text-slate-500 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors" disabled={isCreating}>Cancel</button>
-            <button type="submit" className="flex-1 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50" disabled={isCreating}>
+            <button type="button" onClick={() => { setIsModalOpen(false); setEditingEvent(null); }} className="flex-1 py-2.5 text-slate-500 hover:bg-slate-50 active:bg-slate-100 rounded-lg text-sm font-medium transition-colors min-h-[44px]" disabled={isCreating}>Cancel</button>
+            <button type="submit" className="flex-1 py-2.5 bg-navy-900 hover:bg-navy-800 active:bg-navy-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-50 min-h-[44px]" disabled={isCreating}>
               {isCreating ? (editingEvent ? 'Saving...' : 'Scheduling...') : (editingEvent ? 'Save Changes' : 'Schedule')}
             </button>
           </div>

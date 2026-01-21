@@ -17,21 +17,25 @@ import Tasks from './Tasks';
 import ActivityLog from './ActivityLog';
 import Modal from './Modal';
 import QuickAddForm from './QuickAddForm';
-import { Search, Bell, Plus, X, CheckCircle2, AlertCircle, Calendar } from 'lucide-react';
+import { Search, Bell, Plus, X, CheckCircle2, AlertCircle, Calendar, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { clientService } from '../services/client.service';
 import { taskService } from '../services/task.service';
 import { eventService } from '../services/event.service';
 import { notificationService, Notification } from '../services/notification.service';
 import { Client } from '../types';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 const DashboardLayout: React.FC = () => {
     const [currentView, setCurrentView] = useState('dashboard');
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);
+    const searchInputRef = useRef<HTMLInputElement>(null);
     const [isQuickAddOpen, setQuickAddOpen] = useState(false);
     const [quickAddType, setQuickAddType] = useState<'client' | 'task' | 'event' | 'appointment' | 'policy'>('client');
     const [quickAddClients, setQuickAddClients] = useState<Client[]>([]);
@@ -50,6 +54,21 @@ const DashboardLayout: React.FC = () => {
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const { user } = useAuth();
+    const { isMobile, isTablet, prefersReducedMotion } = useResponsiveView();
+
+    // Close mobile sidebar when switching to desktop
+    useEffect(() => {
+        if (!isMobile && isMobileSidebarOpen) {
+            setIsMobileSidebarOpen(false);
+        }
+    }, [isMobile]);
+
+    // Focus search input when mobile search opens
+    useEffect(() => {
+        if (isMobileSearchOpen && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [isMobileSearchOpen]);
 
     // Load client data when selectedClientId changes
     useEffect(() => {
@@ -367,6 +386,13 @@ const DashboardLayout: React.FC = () => {
         );
     };
 
+    // Calculate main content margin based on device and sidebar state
+    const getMainMargin = () => {
+        if (isMobile) return 'ml-0'; // No margin on mobile (overlay sidebar)
+        if (isSidebarCollapsed) return 'lg:ml-20';
+        return 'lg:ml-72';
+    };
+
     return (
         <div className="flex h-screen bg-[#F0F4F8] font-sans text-slate-600">
             <Sidebar
@@ -377,118 +403,213 @@ const DashboardLayout: React.FC = () => {
                 }}
                 isCollapsed={isSidebarCollapsed}
                 toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                isMobileOpen={isMobileSidebarOpen}
+                onMobileClose={() => setIsMobileSidebarOpen(false)}
             />
 
-            <main className={`flex-1 flex flex-col h-screen overflow-hidden transition-all duration-300 ease-in-out ${isSidebarCollapsed ? 'ml-20' : 'ml-72'}`}>
-                <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-40 shrink-0">
-                    <div className="flex items-center w-96 bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-200 focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent transition-all group shadow-sm relative">
-                        <Search size={18} className="text-slate-400 mr-3 group-focus-within:text-teal-600" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            placeholder="Search clients, documents, or events..."
-                            className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-400 text-navy-900"
-                        />
-                        {/* Search Results Dropdown */}
-                        {searchQuery.length >= 2 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 max-h-80 overflow-y-auto">
-                                {isSearching ? (
-                                    <div className="p-4 text-center text-slate-400">
-                                        <div className="animate-spin mx-auto w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full"></div>
-                                    </div>
-                                ) : (searchResults.clients.length === 0 && searchResults.events.length === 0 && searchResults.workshops.length === 0) ? (
-                                    <div className="p-4 text-center text-slate-400 text-sm">No results found</div>
-                                ) : (
-                                    <>
-                                        {/* Clients Section */}
-                                        {searchResults.clients.length > 0 && (
-                                            <>
-                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Clients</div>
-                                                {searchResults.clients.map(client => (
-                                                    <button
-                                                        key={client.id}
-                                                        onClick={() => {
-                                                            setSelectedClientId(client.id);
-                                                            setSearchQuery('');
-                                                            setSearchResults({ clients: [], events: [], workshops: [] });
-                                                        }}
-                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
-                                                    >
-                                                        <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
-                                                            {client.name?.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-navy-900">{client.name}</p>
-                                                            <p className="text-xs text-slate-500">{client.email}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </>
-                                        )}
+            <main className={`flex-1 flex flex-col h-screen overflow-hidden ${prefersReducedMotion ? '' : 'transition-all duration-300 ease-in-out'} ${getMainMargin()}`}>
+                <header className="h-14 sm:h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-4 lg:px-8 shadow-sm z-40 shrink-0">
+                    {/* Mobile: Hamburger Menu */}
+                    {isMobile && (
+                        <button
+                            onClick={() => setIsMobileSidebarOpen(true)}
+                            className="p-2.5 text-slate-600 hover:text-navy-900 hover:bg-slate-100 active:bg-slate-200 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center mr-2"
+                            aria-label="Open navigation menu"
+                        >
+                            <Menu size={24} />
+                        </button>
+                    )}
 
-                                        {/* Events Section */}
-                                        {searchResults.events.length > 0 && (
-                                            <>
-                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Events</div>
-                                                {searchResults.events.map((event: any) => (
-                                                    <button
-                                                        key={event.id}
-                                                        onClick={() => {
-                                                            setCurrentView('calendar');
-                                                            setSearchQuery('');
-                                                            setSearchResults({ clients: [], events: [], workshops: [] });
-                                                        }}
-                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
-                                                    >
-                                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                                            <Calendar size={14} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-navy-900">{event.title}</p>
-                                                            <p className="text-xs text-slate-500">{event.type} • {event.clientName || 'No client'}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </>
-                                        )}
+                    {/* Desktop: Full Search Bar */}
+                    {!isMobile && (
+                        <div className="flex items-center flex-1 max-w-md lg:max-w-lg bg-slate-50 rounded-xl px-4 py-2.5 border border-slate-200 focus-within:ring-2 focus-within:ring-teal-500 focus-within:border-transparent transition-all group shadow-sm relative">
+                            <Search size={18} className="text-slate-400 mr-3 group-focus-within:text-teal-600 flex-shrink-0" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                placeholder="Search clients, documents, or events..."
+                                className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-400 text-navy-900 min-h-[24px]"
+                            />
+                            {/* Search Results Dropdown */}
+                            {searchQuery.length >= 2 && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 max-h-80 overflow-y-auto">
+                                    {isSearching ? (
+                                        <div className="p-4 text-center text-slate-400">
+                                            <div className="animate-spin mx-auto w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full"></div>
+                                        </div>
+                                    ) : (searchResults.clients.length === 0 && searchResults.events.length === 0 && searchResults.workshops.length === 0) ? (
+                                        <div className="p-4 text-center text-slate-400 text-sm">No results found</div>
+                                    ) : (
+                                        <>
+                                            {/* Clients Section */}
+                                            {searchResults.clients.length > 0 && (
+                                                <>
+                                                    <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Clients</div>
+                                                    {searchResults.clients.map(client => (
+                                                        <button
+                                                            key={client.id}
+                                                            onClick={() => {
+                                                                setSelectedClientId(client.id);
+                                                                setSearchQuery('');
+                                                                setSearchResults({ clients: [], events: [], workshops: [] });
+                                                            }}
+                                                            className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                                                {client.name?.charAt(0)}
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-navy-900">{client.name}</p>
+                                                                <p className="text-xs text-slate-500">{client.email}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            )}
 
-                                        {/* Workshops Section */}
-                                        {searchResults.workshops.length > 0 && (
-                                            <>
-                                                <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Workshops</div>
-                                                {searchResults.workshops.map((workshop: any) => (
-                                                    <button
-                                                        key={workshop.id}
-                                                        onClick={() => {
-                                                            setCurrentView('workshops');
-                                                            setSearchQuery('');
-                                                            setSearchResults({ clients: [], events: [], workshops: [] });
-                                                        }}
-                                                        className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
-                                                    >
-                                                        <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                                                            <Calendar size={14} />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-medium text-navy-900">{workshop.title}</p>
-                                                            <p className="text-xs text-slate-500">{workshop.location || 'No location'}</p>
-                                                        </div>
-                                                    </button>
-                                                ))}
-                                            </>
-                                        )}
-                                    </>
-                                )}
-                            </div>
+                                            {/* Events Section */}
+                                            {searchResults.events.length > 0 && (
+                                                <>
+                                                    <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Events</div>
+                                                    {searchResults.events.map((event: any) => (
+                                                        <button
+                                                            key={event.id}
+                                                            onClick={() => {
+                                                                setCurrentView('calendar');
+                                                                setSearchQuery('');
+                                                                setSearchResults({ clients: [], events: [], workshops: [] });
+                                                            }}
+                                                            className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                                                <Calendar size={14} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-navy-900">{event.title}</p>
+                                                                <p className="text-xs text-slate-500">{event.type} • {event.clientName || 'No client'}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            )}
+
+                                            {/* Workshops Section */}
+                                            {searchResults.workshops.length > 0 && (
+                                                <>
+                                                    <div className="px-3 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider">Workshops</div>
+                                                    {searchResults.workshops.map((workshop: any) => (
+                                                        <button
+                                                            key={workshop.id}
+                                                            onClick={() => {
+                                                                setCurrentView('workshops');
+                                                                setSearchQuery('');
+                                                                setSearchResults({ clients: [], events: [], workshops: [] });
+                                                            }}
+                                                            className="w-full p-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-50 last:border-0"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                                <Calendar size={14} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm font-medium text-navy-900">{workshop.title}</p>
+                                                                <p className="text-xs text-slate-500">{workshop.location || 'No location'}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Mobile: Search Icon + Expandable Search */}
+                    {isMobile && (
+                        <div className="flex-1 flex items-center justify-center">
+                            {isMobileSearchOpen ? (
+                                <div className="flex items-center w-full bg-slate-50 rounded-xl px-3 py-2 border border-slate-200 focus-within:ring-2 focus-within:ring-teal-500 relative">
+                                    <Search size={18} className="text-slate-400 mr-2 flex-shrink-0" />
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        placeholder="Search..."
+                                        className="bg-transparent border-none outline-none text-sm w-full placeholder:text-slate-400 text-navy-900 min-h-[24px]"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            setIsMobileSearchOpen(false);
+                                            setSearchQuery('');
+                                            setSearchResults({ clients: [], events: [], workshops: [] });
+                                        }}
+                                        className="p-1.5 text-slate-400 hover:text-slate-600 min-w-[32px] min-h-[32px] flex items-center justify-center"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                    {/* Mobile Search Results */}
+                                    {searchQuery.length >= 2 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-50 max-h-60 overflow-y-auto">
+                                            {isSearching ? (
+                                                <div className="p-4 text-center text-slate-400">
+                                                    <div className="animate-spin mx-auto w-5 h-5 border-2 border-teal-500 border-t-transparent rounded-full"></div>
+                                                </div>
+                                            ) : (searchResults.clients.length === 0 && searchResults.events.length === 0 && searchResults.workshops.length === 0) ? (
+                                                <div className="p-4 text-center text-slate-400 text-sm">No results found</div>
+                                            ) : (
+                                                <>
+                                                    {searchResults.clients.map(client => (
+                                                        <button
+                                                            key={client.id}
+                                                            onClick={() => {
+                                                                setSelectedClientId(client.id);
+                                                                setSearchQuery('');
+                                                                setSearchResults({ clients: [], events: [], workshops: [] });
+                                                                setIsMobileSearchOpen(false);
+                                                            }}
+                                                            className="w-full p-3 text-left hover:bg-slate-50 active:bg-slate-100 flex items-center gap-3 border-b border-slate-50 last:border-0 min-h-[48px]"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-semibold text-sm">
+                                                                {client.name?.charAt(0)}
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-sm font-medium text-navy-900 truncate">{client.name}</p>
+                                                                <p className="text-xs text-slate-500 truncate">{client.email}</p>
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <span className="text-sm font-semibold text-navy-900">Retirement<span className="text-teal-600">Right</span></span>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+                        {/* Mobile: Search Button */}
+                        {isMobile && !isMobileSearchOpen && (
+                            <button
+                                onClick={() => setIsMobileSearchOpen(true)}
+                                className="p-2.5 text-slate-400 hover:text-navy-900 hover:bg-slate-50 active:bg-slate-100 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                aria-label="Search"
+                            >
+                                <Search size={20} />
+                            </button>
                         )}
-                    </div>
 
-                    <div className="flex items-center gap-6">
+                        {/* Notifications */}
                         <div className="relative" ref={notifRef}>
                             <button
                                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                                className={`relative text-slate-400 hover:text-navy-900 transition-colors p-2.5 rounded-full hover:bg-slate-50 ${isNotificationsOpen ? 'bg-slate-100 text-navy-900' : ''}`}
+                                className={`relative text-slate-400 hover:text-navy-900 transition-colors p-2.5 rounded-full hover:bg-slate-50 active:bg-slate-100 min-w-[44px] min-h-[44px] flex items-center justify-center ${isNotificationsOpen ? 'bg-slate-100 text-navy-900' : ''}`}
+                                aria-label="Notifications"
                             >
                                 <Bell size={20} />
                                 {unreadCount > 0 && (
@@ -500,13 +621,17 @@ const DashboardLayout: React.FC = () => {
                             {isNotificationsOpen && <NotificationsDropdown />}
                         </div>
 
-                        <div className="h-8 w-px bg-slate-200"></div>
+                        {/* Divider - Desktop only */}
+                        <div className="hidden sm:block h-8 w-px bg-slate-200"></div>
 
+                        {/* Quick Add Button */}
                         <button
                             onClick={() => setQuickAddOpen(true)}
-                            className="bg-navy-900 hover:bg-navy-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-navy-900/10 hover:shadow-xl transition-all flex items-center gap-2 transform active:scale-95"
+                            className="bg-navy-900 hover:bg-navy-800 active:bg-navy-950 text-white px-3 sm:px-5 py-2.5 rounded-xl text-sm font-semibold shadow-lg shadow-navy-900/10 hover:shadow-xl transition-all flex items-center gap-2 transform active:scale-95 min-h-[44px]"
+                            aria-label="Quick Add"
                         >
-                            <Plus size={18} /> Quick Add
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">Quick Add</span>
                         </button>
                     </div>
                 </header>

@@ -16,9 +16,17 @@ const prisma = new PrismaClient();
 async function main() {
     const dryRun = !process.argv.includes('--execute');
 
+    // User-specified clients to KEEP (do not delete)
+    const keepClientNames = [
+        'Unknown Caller (8449130005)',
+        'Michael J Eberhardt',
+        'Fred Johnson',
+    ];
+
     console.log('\n🎯 Targeted Production Cleanup\n');
     console.log('='.repeat(50));
     console.log(dryRun ? '⚠️  DRY RUN MODE (use --execute to apply)\n' : '🔴 LIVE EXECUTION MODE\n');
+    console.log(`📋 Excluded from deletion: ${keepClientNames.join(', ')}\n`);
 
     // Get ImportJob data to identify import windows
     const importJobs = await prisma.importJob.findMany({
@@ -96,6 +104,12 @@ async function main() {
             continue;
         }
 
+        // Check if user wants to keep this client
+        if (keepClientNames.some(name => client.name.includes(name))) {
+            importedClients.push(client.id);
+            continue;
+        }
+
         // Everything else is test data
         toDelete.push({
             id: client.id,
@@ -114,13 +128,14 @@ async function main() {
         if (toDelete.length > 20) console.log(`   ... and ${toDelete.length - 20} more`);
     }
 
-    // Get test events
+    // Get test events (including 'Retirement Planning' per user request)
     const testEvents = await prisma.event.findMany({
         where: {
             OR: [
                 { title: { contains: 'test', mode: 'insensitive' } },
                 { title: { contains: 'demo', mode: 'insensitive' } },
                 { title: { contains: 'TEST', mode: 'insensitive' } },
+                { title: { equals: 'Retirement Planning' } },
             ],
         },
     });

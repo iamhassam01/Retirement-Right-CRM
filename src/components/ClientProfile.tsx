@@ -13,6 +13,7 @@ import {
   Copy, Check, Plus, Trash2, Star, X, Pin, StickyNote, Search
 } from 'lucide-react';
 import Modal from './Modal';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 interface ClientProfileProps {
   client: Client;
@@ -44,6 +45,7 @@ const ClientProfile: React.FC<ClientProfileProps> = ({ client: initialClient, on
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(false);
+  const { isMobile } = useResponsiveView();
 
   // Modal States
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
