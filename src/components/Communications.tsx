@@ -6,15 +6,7 @@ import Modal from './Modal';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useResponsiveView } from '../hooks/useMediaQuery';
-
-interface Client {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  status: string;
-  advisorId?: string;
-}
+import { Client } from '../types';
 
 const AVAILABLE_VARIABLES = [
   { key: '{{client_name}}', label: 'Client Full Name' },
@@ -76,7 +68,12 @@ const Communications: React.FC = () => {
       ]);
       setTemplates(templatesData);
       setLogs(logsData);
-      setClients(clientsData.filter((c: Client) => c.email)); // Only clients with email
+      // Filter clients that have an email (either old email field OR new emails array)
+      setClients(clientsData.filter((c: Client) => {
+        const hasOldEmail = c.email && c.email.trim() !== '';
+        const hasNewEmail = c.emails && c.emails.length > 0;
+        return hasOldEmail || hasNewEmail;
+      }));
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -182,13 +179,20 @@ const Communications: React.FC = () => {
     try {
       const recipients = clients
         .filter(c => selectedClientIds.has(c.id))
-        .map(c => ({
-          clientId: c.id,
-          email: c.email!,
-          client_name: c.name,
-          first_name: c.name.split(' ')[0],
-          phone: c.phone || ''
-        }));
+        .map(c => {
+          // Get primary email from new emails array, fallback to old email field
+          const primaryEmail = c.emails?.find(e => e.isPrimary)?.email || c.emails?.[0]?.email || c.email || '';
+          // Get primary phone from new phones array, fallback to old phone field
+          const primaryPhone = c.phones?.find(p => p.isPrimary)?.number || c.phones?.[0]?.number || c.phone || '';
+          return {
+            clientId: c.id,
+            email: primaryEmail,
+            client_name: c.name,
+            first_name: c.name.split(' ')[0],
+            phone: primaryPhone
+          };
+        })
+        .filter(r => r.email); // Only include recipients with valid email
 
       const result = await automationService.sendEmails(selectedTemplate.id, recipients);
       setSendResult({ sent: result.sent, failed: result.failed });
@@ -411,7 +415,7 @@ const Communications: React.FC = () => {
                               />
                             </td>
                             <td className="px-4 py-3 text-sm font-medium text-navy-900">{client.name}</td>
-                            <td className="px-4 py-3 text-sm text-slate-600">{client.email}</td>
+                            <td className="px-4 py-3 text-sm text-slate-600">{client.emails?.find(e => e.isPrimary)?.email || client.emails?.[0]?.email || client.email}</td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${client.status === 'Active' ? 'bg-emerald-50 text-emerald-700' :
                                 client.status === 'Lead' ? 'bg-blue-50 text-blue-700' :
