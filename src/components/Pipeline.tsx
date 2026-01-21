@@ -168,32 +168,33 @@ const Pipeline: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col p-8 overflow-hidden animate-fade-in">
-      <div className="flex justify-between items-center mb-6">
+    <div className="h-full flex flex-col p-4 sm:p-6 lg:p-8 overflow-hidden animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-navy-900">Prospect Pipeline</h2>
-          <p className="text-slate-500 text-sm">Drag and drop cards to move prospects forward.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Prospect Pipeline</h2>
+          <p className="text-slate-500 text-xs sm:text-sm">Drag and drop cards to move prospects forward.</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <div className="text-right">
             <p className="text-xs text-slate-400 font-medium uppercase">Potential AUM</p>
             <p className="text-lg font-bold text-navy-900">${(totalPotentialAum / 1000000).toFixed(1)}M</p>
           </div>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors shadow-sm"
+            className="px-3 sm:px-4 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 active:bg-navy-700 transition-colors shadow-sm min-h-[44px] flex items-center gap-2"
           >
-            Add Opportunity
+            <span className="sm:hidden">+ Add</span>
+            <span className="hidden sm:inline">Add Opportunity</span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-max h-full">
+      <div className="flex-1 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-3 sm:gap-4 min-w-max h-full">
           {stages.map((stage, index) => (
             <div
               key={index}
-              className="w-72 flex flex-col h-full"
+              className="w-64 sm:w-72 flex flex-col h-full flex-shrink-0"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, stage as PipelineStage)}
             >

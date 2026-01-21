@@ -327,7 +327,7 @@ const DashboardLayout: React.FC = () => {
         };
 
         return (
-            <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <div className="fixed sm:absolute inset-x-2 sm:inset-x-auto sm:right-0 top-16 sm:top-12 w-auto sm:w-96 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-xl border border-slate-200 z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2">
                 <div className="p-4 border-b border-slate-100 flex justify-between items-center">
                     <h3 className="font-bold text-navy-900">Notifications</h3>
                     {notifications.length > 0 && (

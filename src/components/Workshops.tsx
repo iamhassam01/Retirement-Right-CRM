@@ -151,14 +151,14 @@ const Workshops: React.FC = () => {
                   placeholder="e.g. Retirement Planning 2024"
                />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                <div>
                   <label className="block text-sm font-medium text-navy-900 mb-1">Date</label>
                   <input
                      type="date"
                      value={formDate}
                      onChange={(e) => setFormDate(e.target.value)}
-                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                     className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                   />
                </div>
                <div>
@@ -210,22 +210,22 @@ const Workshops: React.FC = () => {
    };
 
    return (
-      <div className="p-8 animate-fade-in">
-         <div className="flex justify-between items-center mb-8">
+      <div className="p-4 sm:p-6 lg:p-8 animate-fade-in">
+         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
-               <h2 className="text-2xl font-bold text-navy-900">Workshops & Events</h2>
-               <p className="text-slate-500 text-sm">Manage educational seminars and client appreciation events.</p>
+               <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Workshops & Events</h2>
+               <p className="text-slate-500 text-xs sm:text-sm">Manage educational seminars and client appreciation events.</p>
             </div>
             <button
                onClick={() => setIsCreateModalOpen(true)}
-               className="px-5 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 shadow-md"
+               className="px-4 sm:px-5 py-2.5 bg-navy-900 text-white rounded-lg text-sm font-medium hover:bg-navy-800 active:bg-navy-700 shadow-md min-h-[44px]"
             >
                + Create Event
             </button>
          </div>
 
          {workshops.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                {workshops.map((workshop) => (
                   <div key={workshop.id} onClick={() => setSelectedWorkshop(workshop)} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden group cursor-pointer hover:border-teal-300 transition-all">
                      <div className="h-32 bg-gradient-to-br from-teal-500 to-navy-800 relative flex items-center justify-center">

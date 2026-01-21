@@ -7,6 +7,7 @@ import {
    Plus, User, X
 } from 'lucide-react';
 import Modal from './Modal';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 interface TasksProps {
    onSelectClient?: (clientId: string) => void;
@@ -22,6 +23,7 @@ const Tasks: React.FC<TasksProps> = ({ onSelectClient }) => {
    const [searchTerm, setSearchTerm] = useState('');
    const [isSnoozing, setIsSnoozing] = useState(false);
    const [priorityFilter, setPriorityFilter] = useState<string | null>(null);
+   const { isMobile } = useResponsiveView();
 
    useEffect(() => {
       const fetchTasks = async () => {
@@ -178,65 +180,52 @@ const Tasks: React.FC<TasksProps> = ({ onSelectClient }) => {
    }
 
    return (
-      <div className="p-8 h-full flex flex-col animate-fade-in">
-         <div className="flex justify-between items-center mb-6">
+      <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in">
+         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
             <div>
-               <h2 className="text-2xl font-bold text-navy-900">Follow-ups & Reminders</h2>
-               <p className="text-slate-500 text-sm">Stay on top of client commitments and compliance tasks.</p>
+               <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Follow-ups & Reminders</h2>
+               <p className="text-slate-500 text-xs sm:text-sm">Stay on top of client commitments and compliance tasks.</p>
             </div>
             <div className="flex gap-3">
                <div className="flex bg-white border border-slate-200 rounded-lg p-1">
                   <button
                      onClick={() => setActiveTab('todo')}
-                     className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'todo' ? 'bg-navy-900 text-white shadow-sm' : 'text-slate-500 hover:text-navy-900'}`}
+                     className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all min-h-[40px] ${activeTab === 'todo' ? 'bg-navy-900 text-white shadow-sm' : 'text-slate-500 hover:text-navy-900 active:bg-slate-50'}`}
                   >
                      To Do ({todoTasks.length})
                   </button>
                   <button
                      onClick={() => setActiveTab('completed')}
-                     className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'completed' ? 'bg-navy-900 text-white shadow-sm' : 'text-slate-500 hover:text-navy-900'}`}
+                     className={`px-3 sm:px-4 py-2 text-sm font-medium rounded-md transition-all min-h-[40px] ${activeTab === 'completed' ? 'bg-navy-900 text-white shadow-sm' : 'text-slate-500 hover:text-navy-900 active:bg-slate-50'}`}
                   >
-                     Completed ({completedTasks.length})
+                     Done ({completedTasks.length})
                   </button>
                </div>
             </div>
          </div>
 
          {/* Filters */}
-         <div className="flex gap-4 mb-6">
-            <div className="relative flex-1 max-w-md">
+         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+            <div className="relative flex-1">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                <input
                   type="text"
                   placeholder="Search tasks..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                />
             </div>
-            <div className="relative">
-               <button
-                  onClick={() => setPriorityFilter(priorityFilter ? null : 'High')}
-                  className={`flex items-center gap-2 px-3 py-2 border rounded-lg text-sm transition-colors ${priorityFilter ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                     }`}
-               >
-                  <Filter size={16} />
-                  {priorityFilter ? `Priority: ${priorityFilter}` : 'Priority'}
-                  {priorityFilter && (
-                     <X size={14} className="ml-1" onClick={(e) => { e.stopPropagation(); setPriorityFilter(null); }} />
-                  )}
-               </button>
-            </div>
-            <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
                {['High', 'Medium', 'Low'].map(p => (
                   <button
                      key={p}
                      onClick={() => setPriorityFilter(priorityFilter === p ? null : p)}
-                     className={`px-3 py-2 text-xs font-medium border-r last:border-r-0 transition-colors ${priorityFilter === p
-                           ? p === 'High' ? 'bg-rose-50 text-rose-700'
-                              : p === 'Medium' ? 'bg-amber-50 text-amber-700'
-                                 : 'bg-slate-100 text-slate-700'
-                           : 'text-slate-500 hover:bg-slate-50'
+                     className={`flex-shrink-0 px-3 py-2 text-xs font-medium rounded-lg border transition-colors min-h-[40px] ${priorityFilter === p
+                        ? p === 'High' ? 'bg-rose-50 border-rose-200 text-rose-700'
+                           : p === 'Medium' ? 'bg-amber-50 border-amber-200 text-amber-700'
+                              : 'bg-slate-100 border-slate-200 text-slate-700'
+                        : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 active:bg-slate-100'
                         }`}
                   >
                      {p}
@@ -255,8 +244,8 @@ const Tasks: React.FC<TasksProps> = ({ onSelectClient }) => {
                            <button
                               onClick={() => activeTab === 'todo' ? handleComplete(task.id) : handleUncomplete(task.id)}
                               className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${activeTab === 'completed'
-                                    ? 'border-emerald-500 bg-emerald-500 text-white'
-                                    : 'border-slate-300 text-white hover:border-emerald-500 hover:bg-emerald-500'
+                                 ? 'border-emerald-500 bg-emerald-500 text-white'
+                                 : 'border-slate-300 text-white hover:border-emerald-500 hover:bg-emerald-500'
                                  }`}
                            >
                               <CheckCircle2 size={14} />
@@ -267,7 +256,7 @@ const Tasks: React.FC<TasksProps> = ({ onSelectClient }) => {
                               </p>
                               <div className="flex items-center gap-3 mt-1 text-sm">
                                  <span className={`flex items-center gap-1 ${isOverdue(task.due || task.dueDate) ? 'text-rose-500 font-medium' :
-                                       isDueToday(task.due || task.dueDate) ? 'text-amber-500' : 'text-slate-500'
+                                    isDueToday(task.due || task.dueDate) ? 'text-amber-500' : 'text-slate-500'
                                     }`}>
                                     <Clock size={14} />
                                     {task.due || task.dueDate

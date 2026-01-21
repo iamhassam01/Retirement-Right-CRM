@@ -128,17 +128,17 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <div className="p-8 h-full flex flex-col animate-fade-in overflow-y-auto">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col animate-fade-in overflow-y-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-navy-900">Settings</h2>
-          <p className="text-slate-500 text-sm">Manage your profile and workspace preferences</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-navy-900">Settings</h2>
+          <p className="text-slate-500 text-xs sm:text-sm">Manage your profile and workspace preferences</p>
         </div>
         <button
           onClick={handleSaveAll}
           disabled={saveStatus !== 'idle'}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all duration-300 ${saveStatus === 'success' ? 'bg-emerald-600 text-white' : 'bg-teal-600 text-white hover:bg-teal-700'
+          className={`flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all duration-300 min-h-[44px] ${saveStatus === 'success' ? 'bg-emerald-600 text-white' : 'bg-teal-600 text-white hover:bg-teal-700 active:bg-teal-800'
             }`}
         >
           {saveStatus === 'idle' && <><Save size={16} /> Save All Changes</>}
@@ -147,9 +147,9 @@ const Settings: React.FC = () => {
         </button>
       </div>
 
-      <div className="space-y-8 max-w-4xl">
+      <div className="space-y-6 sm:space-y-8 max-w-4xl">
         {/* MY PROFILE Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-teal-100 rounded-lg">
               <User className="text-teal-600" size={20} />
@@ -256,7 +256,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* SECURITY Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-amber-100 rounded-lg">
               <Shield className="text-amber-600" size={20} />
@@ -307,7 +307,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* COMPANY Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Building className="text-blue-600" size={20} />
@@ -348,7 +348,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* PIPELINE Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-purple-100 rounded-lg">
               <BarChart3 className="text-purple-600" size={20} />
@@ -372,7 +372,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* NOTIFICATIONS Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-rose-100 rounded-lg">
               <Bell className="text-rose-600" size={20} />
@@ -404,7 +404,7 @@ const Settings: React.FC = () => {
         </section>
 
         {/* INTEGRATIONS Section */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-green-100 rounded-lg">
               <Link2 className="text-green-600" size={20} />

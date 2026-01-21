@@ -5,6 +5,7 @@ import { taskService } from '../services/task.service';
 import { eventService } from '../services/event.service';
 import { noteService } from '../services/note.service';
 import { Client } from '../types';
+import { useResponsiveView } from '../hooks/useMediaQuery';
 
 interface QuickAddFormProps {
     quickAddType: 'client' | 'task' | 'event' | 'appointment' | 'policy';
@@ -22,6 +23,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
     onClose
 }) => {
     const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+    const { isMobile } = useResponsiveView();
     const [formData, setFormData] = useState({
         // Client fields
         name: '',
@@ -154,12 +156,13 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
 
     return (
         <div className="space-y-4">
-            <div className="grid grid-cols-5 bg-slate-100 p-1 rounded-lg mb-6 gap-1">
+            {/* Type Tabs - Scrollable on mobile */}
+            <div className="flex overflow-x-auto sm:grid sm:grid-cols-5 bg-slate-100 p-1 rounded-lg mb-6 gap-1 -mx-1 px-1 scrollbar-hide">
                 {(['client', 'task', 'event', 'appointment', 'policy'] as const).map(type => (
                     <button
                         key={type}
                         onClick={() => setQuickAddType(type)}
-                        className={`text-xs sm:text-sm font-medium py-1.5 rounded-md capitalize ${quickAddType === type ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800'
+                        className={`flex-shrink-0 px-3 sm:px-2 py-2.5 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-md text-sm font-medium capitalize transition-colors ${quickAddType === type ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-500 hover:text-navy-800 active:bg-white/50'
                             }`}
                     >
                         {type === 'policy' ? 'Policy' : type}
@@ -175,18 +178,18 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                             placeholder="e.g. Jonathan Doe"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-navy-900 mb-1">Email</label>
                             <input
                                 type="email"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                                 placeholder="email@example.com"
                             />
                         </div>
@@ -196,7 +199,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                                 type="tel"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                                 placeholder="(555) 123-4567"
                             />
                         </div>
@@ -206,7 +209,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                         <select
                             value={formData.clientStatus}
                             onChange={(e) => setFormData({ ...formData, clientStatus: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                         >
                             <option value="Active">Active (Client)</option>
                             <option value="Lead">Lead</option>
@@ -224,18 +227,18 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                             placeholder="e.g. Follow up on retirement plan"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-navy-900 mb-1">Due Date</label>
                             <input
                                 type="date"
                                 value={formData.due}
                                 onChange={(e) => setFormData({ ...formData, due: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                             />
                         </div>
                         <div>
@@ -243,7 +246,7 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                             <select
                                 value={formData.priority}
                                 onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                className="w-full px-3 py-2.5 text-base border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 min-h-[44px]"
                             >
                                 <option value="High">High</option>
                                 <option value="Medium">Medium</option>
@@ -496,11 +499,11 @@ const QuickAddForm: React.FC<QuickAddFormProps> = ({
                 </>
             )}
 
-            <div className="pt-4">
+            <div className="pt-4 pb-safe">
                 <button
                     onClick={handleSubmit}
                     disabled={status === 'saving'}
-                    className="w-full bg-navy-900 hover:bg-navy-800 text-white font-medium py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-navy-900 hover:bg-navy-800 active:bg-navy-700 text-white font-medium py-3 min-h-[48px] rounded-lg transition-colors flex items-center justify-center gap-2 text-base"
                 >
                     {status === 'saving' ? 'Creating...' : `Create ${quickAddType}`}
                 </button>
