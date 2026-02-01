@@ -196,7 +196,6 @@ const Workshops: React.FC = () => {
                <OccurrenceForm
                   templateId={selectedTemplate.id}
                   occurrence={editingOccurrence}
-                  defaultCapacity={selectedTemplate.defaultCapacity}
                   onClose={() => setIsOccurrenceModalOpen(false)}
                   onSuccess={() => {
                      setIsOccurrenceModalOpen(false);
@@ -445,7 +444,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose, onSucces
    const [hostPhone, setHostPhone] = useState(template?.hostPhone || '');
    const [guideUrl, setGuideUrl] = useState(template?.guideUrl || '');
    const [disclaimer, setDisclaimer] = useState(template?.disclaimer || '');
-   const [defaultCapacity, setDefaultCapacity] = useState(template?.defaultCapacity || 20);
 
    const handleSubmit = async () => {
       if (!name.trim()) {
@@ -467,7 +465,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose, onSucces
             hostPhone: hostPhone.trim() || undefined,
             guideUrl: guideUrl.trim() || undefined,
             disclaimer: disclaimer.trim() || undefined,
-            defaultCapacity: defaultCapacity || undefined,
          };
 
          if (template) {
@@ -516,8 +513,8 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose, onSucces
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                        ? 'border-teal-500 text-teal-600'
-                        : 'border-transparent text-slate-500 hover:text-slate-700'
+                     ? 'border-teal-500 text-teal-600'
+                     : 'border-transparent text-slate-500 hover:text-slate-700'
                      }`}
                >
                   <tab.icon size={16} /> {tab.label}
@@ -545,11 +542,6 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose, onSucces
                   <textarea value={description} onChange={(e) => setDescription(e.target.value)}
                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                      rows={3} placeholder="Brief description for event listings..." />
-               </div>
-               <div>
-                  <label className="block text-sm font-medium text-navy-900 mb-1">Default Capacity</label>
-                  <input type="number" value={defaultCapacity} onChange={(e) => setDefaultCapacity(parseInt(e.target.value))}
-                     className="w-32 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" />
                </div>
             </div>
          )}
@@ -681,19 +673,17 @@ const TemplateForm: React.FC<TemplateFormProps> = ({ template, onClose, onSucces
 interface OccurrenceFormProps {
    templateId: string;
    occurrence: EventOccurrence | null;
-   defaultCapacity?: number;
    onClose: () => void;
    onSuccess: () => void;
 }
 
-const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence, defaultCapacity, onClose, onSuccess }) => {
+const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence, onClose, onSuccess }) => {
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [wpStatus, setWpStatus] = useState<WPStatus>(occurrence?.wpStatus || 'draft');
 
    // Form state
    const [eventDate, setEventDate] = useState(occurrence?.eventDate ? occurrence.eventDate.split('T')[0] : '');
    const [startTime, setStartTime] = useState(occurrence?.startTime || '');
-   const [endTime, setEndTime] = useState(occurrence?.endTime || '');
    const [venueName, setVenueName] = useState(occurrence?.venueName || '');
    const [room, setRoom] = useState(occurrence?.room || '');
    const [address, setAddress] = useState(occurrence?.address || '');
@@ -701,7 +691,6 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
    const [state, setState] = useState(occurrence?.state || 'AZ');
    const [zipCode, setZipCode] = useState(occurrence?.zipCode || '');
    const [mapUrl, setMapUrl] = useState(occurrence?.mapUrl || '');
-   const [capacity, setCapacity] = useState(occurrence?.capacity || defaultCapacity || 20);
 
    const handleSubmit = async () => {
       if (!eventDate || !venueName || !address) {
@@ -714,7 +703,6 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
          const data: CreateOccurrenceInput = {
             eventDate,
             startTime: startTime || undefined,
-            endTime: endTime || undefined,
             venueName,
             room: room || undefined,
             address,
@@ -722,7 +710,6 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
             state: state || undefined,
             zipCode: zipCode || undefined,
             mapUrl: mapUrl || undefined,
-            capacity,
             wpStatus,
          };
 
@@ -753,11 +740,6 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
                <label className="block text-sm font-medium text-navy-900 mb-1">Start Time</label>
                <input type="text" value={startTime} onChange={(e) => setStartTime(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="6:00 PM" />
-            </div>
-            <div>
-               <label className="block text-sm font-medium text-navy-900 mb-1">End Time</label>
-               <input type="text" value={endTime} onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="8:00 PM" />
             </div>
          </div>
 
@@ -799,18 +781,11 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
             </div>
          </div>
 
-         {/* Map & Capacity */}
-         <div className="grid grid-cols-2 gap-3">
-            <div>
-               <label className="block text-sm font-medium text-navy-900 mb-1">Google Maps URL</label>
-               <input type="url" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="https://maps.app.goo.gl/..." />
-            </div>
-            <div>
-               <label className="block text-sm font-medium text-navy-900 mb-1">Capacity</label>
-               <input type="number" value={capacity} onChange={(e) => setCapacity(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg" />
-            </div>
+         {/* Map URL */}
+         <div>
+            <label className="block text-sm font-medium text-navy-900 mb-1">Google Maps URL</label>
+            <input type="url" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)}
+               className="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="https://maps.app.goo.gl/..." />
          </div>
 
          {/* WordPress Status */}
