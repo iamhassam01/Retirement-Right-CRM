@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { Lock, Mail, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { authService } from '../services/auth.service';
 
 const ResetPassword: React.FC = () => {
     const location = useLocation();
@@ -34,11 +32,8 @@ const ResetPassword: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
-                email,
-                newPassword
-            });
-            if (response.data.success) {
+            const response = await authService.resetPassword(email, newPassword);
+            if (response.success) {
                 setIsSuccess(true);
             }
         } catch (err: any) {

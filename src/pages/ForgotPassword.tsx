@@ -2,9 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { Mail, Loader2, AlertCircle, CheckCircle, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { authService } from '../services/auth.service';
 
 const ForgotPassword: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -18,8 +16,8 @@ const ForgotPassword: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
-            if (response.data.success) {
+            const response = await authService.forgotPassword(email);
+            if (response.success) {
                 setIsSuccess(true);
             }
         } catch (err: any) {
@@ -31,13 +29,13 @@ const ForgotPassword: React.FC = () => {
 
     if (isSuccess) {
         return (
-            <AuthLayout title="Check Your Email" subtitle="Password reset instructions sent">
+            <AuthLayout title="Email Verified" subtitle="You can now reset your password">
                 <div className="text-center">
                     <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="text-emerald-500" size={32} />
                     </div>
                     <p className="text-slate-600 mb-6">
-                        If an account exists for <span className="font-medium">{email}</span>, you'll receive password reset instructions shortly.
+                        Account found for <span className="font-medium">{email}</span>. You can now set a new password.
                     </p>
                     <Link
                         to="/reset-password"
@@ -93,7 +91,7 @@ const ForgotPassword: React.FC = () => {
                     {isLoading ? (
                         <Loader2 className="animate-spin" size={20} />
                     ) : (
-                        'Send Reset Link'
+                        'Verify Email'
                     )}
                 </button>
             </form>

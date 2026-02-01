@@ -1,5 +1,4 @@
 import React from 'react';
-import { Building2 } from 'lucide-react';
 
 interface AuthLayoutProps {
     children: React.ReactNode;
@@ -23,9 +22,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                 <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
                     {/* Logo */}
                     <div className="flex items-center gap-3 mb-12">
-                        <div className="w-12 h-12 bg-teal-500 rounded-xl flex items-center justify-center">
-                            <Building2 className="text-white" size={28} />
-                        </div>
+                        <img src="/logo.png" alt="Retirement Right" className="w-12 h-12 rounded-xl" />
                         <div>
                             <h1 className="text-2xl font-bold text-white">Retirement Right</h1>
                             <p className="text-slate-400 text-sm">CRM Platform</p>
@@ -64,9 +61,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitle }) =>
                 <div className="w-full max-w-md">
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-                        <div className="w-10 h-10 bg-navy-900 rounded-xl flex items-center justify-center">
-                            <Building2 className="text-white" size={22} />
-                        </div>
+                        <img src="/logo.png" alt="Retirement Right" className="w-10 h-10 rounded-xl" />
                         <span className="text-xl font-bold text-navy-900">Retirement Right</span>
                     </div>
 
