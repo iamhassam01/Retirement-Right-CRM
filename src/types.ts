@@ -173,3 +173,116 @@ export interface DocumentFile {
   dateModified: string;
   category: 'Client' | 'Internal' | 'Compliance';
 }
+
+// --- Event Template & Occurrence Types (WordPress Integration) ---
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface EventTemplate {
+  id: string;
+  name: string;
+  slug?: string;
+  isActive: boolean;
+  subtitle?: string;
+  description?: string;
+  learnings: string[];
+  whyAttend?: string;
+  faqs?: FAQ[];
+  hostName?: string;
+  hostTitle?: string;
+  hostEmail?: string;
+  hostPhone?: string;
+  guideUrl?: string;
+  disclaimer?: string;
+  defaultCapacity?: number;
+  defaultDuration?: number;
+  createdAt: string;
+  updatedAt: string;
+  occurrences?: EventOccurrence[];
+  // Computed fields from API
+  upcomingCount?: number;
+  syncedCount?: number;
+  totalOccurrences?: number;
+}
+
+export type WPStatus = 'draft' | 'publish';
+export type WPSyncStatus = 'pending' | 'synced' | 'failed' | 'deleted';
+export type OccurrenceStatus = 'scheduled' | 'completed' | 'cancelled';
+
+export interface EventOccurrence {
+  id: string;
+  templateId: string;
+  eventDate: string;
+  startTime?: string;
+  endTime?: string;
+  venueName: string;
+  room?: string;
+  address: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  mapUrl?: string;
+  capacity?: number;
+  registered?: number;
+  heroImage?: string;
+  status: OccurrenceStatus;
+  wpPostId?: number;
+  wpStatus?: WPStatus;
+  wpSyncStatus?: WPSyncStatus;
+  wpLastSyncedAt?: string;
+  wpSyncError?: string;
+  wpSlug?: string;
+  createdAt: string;
+  updatedAt: string;
+  template?: {
+    name: string;
+    slug?: string;
+    subtitle?: string;
+  };
+}
+
+export interface CreateEventTemplateInput {
+  name: string;
+  slug?: string;
+  subtitle?: string;
+  description?: string;
+  learnings?: string[];
+  whyAttend?: string;
+  faqs?: FAQ[];
+  hostName?: string;
+  hostTitle?: string;
+  hostEmail?: string;
+  hostPhone?: string;
+  guideUrl?: string;
+  disclaimer?: string;
+  defaultCapacity?: number;
+  defaultDuration?: number;
+}
+
+export interface CreateOccurrenceInput {
+  eventDate: string;
+  startTime?: string;
+  endTime?: string;
+  venueName: string;
+  room?: string;
+  address: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  mapUrl?: string;
+  capacity?: number;
+  heroImage?: string;
+  wpStatus?: WPStatus;
+}
+
+export interface SyncResult {
+  success: boolean;
+  total?: number;
+  synced?: number;
+  failed?: number;
+  errors?: string[];
+  wpPostId?: number;
+  error?: string;
+}

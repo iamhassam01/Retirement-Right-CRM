@@ -343,3 +343,90 @@ model TimeBlock {
   @@index([userId])
   @@index([startTime, endTime])
 }
+
+// --- Event Templates (Shared Workshop Content) ---
+// Represents a workshop "type" like "Maximizing Social Security"
+model EventTemplate {
+  id          String   @id @default(uuid())
+  name        String   // Internal name: "Maximizing Social Security"
+  slug        String?  @unique // URL-friendly slug for WordPress
+  isActive    Boolean  @default(true)
+  
+  // Display Content
+  subtitle    String?  // "Maximize Your Benefits"
+  description String?  @db.Text // Short description/excerpt
+  
+  // What You'll Learn (array of bullet points)
+  learnings   String[]
+  
+  // Why Attend (rich text)
+  whyAttend   String?  @db.Text
+  
+  // FAQs (array of {question, answer})
+  faqs        Json?
+  
+  // Host Information (template-based, same for all occurrences)
+  hostName    String?
+  hostTitle   String?
+  hostEmail   String?
+  hostPhone   String?
+  
+  // Additional Content
+  guideUrl    String?  // Downloadable guide PDF
+  disclaimer  String?  @db.Text // Privacy disclaimer
+  
+  // Default Settings
+  defaultCapacity  Int?     @default(20)
+  defaultDuration  Int?     @default(120) // Minutes
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  occurrences EventOccurrence[]
+}
+
+// --- Event Occurrences (Specific Date/Location Instances) ---
+// Each occurrence = one WordPress post
+model EventOccurrence {
+  id          String   @id @default(uuid())
+  templateId  String
+  template    EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  // Specific Date & Time
+  eventDate   DateTime
+  startTime   String?  // "6:00 PM" - display format
+  endTime     String?  // "8:00 PM" - display format
+  
+  // Location Details
+  venueName   String
+  room        String?  // "Assembly Room", "Monsoon Room"
+  address     String
+  city        String?
+  state       String?
+  zipCode     String?
+  mapUrl      String?  // Google Maps link
+  
+  // Event-specific
+  capacity    Int?
+  registered  Int?     @default(0)
+  heroImage   String?  // Featured image URL
+  
+  // Status
+  status      String   @default("scheduled") // scheduled, completed, cancelled
+  
+  // WordPress Sync
+  wpPostId    Int?     @unique // WordPress post ID after sync
+  wpStatus    String?  @default("draft") // draft, publish
+  wpSyncStatus String? @default("pending") // pending, synced, failed
+  wpLastSyncedAt DateTime?
+  wpSyncError String?
+  wpSlug      String?  // Generated slug with date
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([templateId])
+  @@index([eventDate])
+  @@index([wpPostId])
+}

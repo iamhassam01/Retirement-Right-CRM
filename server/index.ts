@@ -31,6 +31,8 @@ import automationRoutes from './routes/automation.routes';
 import importRoutes from './routes/import.routes';
 import notesRoutes from './routes/notes.routes';
 import timeblockRoutes from './routes/timeblock.routes';
+import eventTemplatesRoutes from './routes/eventTemplates.routes';
+import eventOccurrencesRoutes from './routes/eventOccurrences.routes';
 
 // Import Middleware
 import { authenticateToken } from './middleware/auth.middleware';
@@ -106,6 +108,8 @@ app.use('/api/automation', automationRoutes); // Auth handled inside router
 app.use('/api/import', importRoutes); // Auth handled inside router
 app.use('/api/notes', notesRoutes); // Auth handled inside router
 app.use('/api/timeblocks', timeblockRoutes); // Auth handled inside router
+app.use('/api/event-templates', authenticateToken, eventTemplatesRoutes);
+app.use('/api/event-occurrences', authenticateToken, eventOccurrencesRoutes);
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
