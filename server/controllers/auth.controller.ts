@@ -140,7 +140,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 };
 
-// Simple forgot password - just verify email exists
+// Simple forgot password - verify email exists in database
 export const forgotPassword = async (req: Request, res: Response) => {
     try {
         const { email } = req.body;
@@ -148,11 +148,15 @@ export const forgotPassword = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Email is required' });
         }
 
-        // Check if user exists (but don't reveal if they don't for security)
+        // Check if user exists
         const user = await prisma.user.findUnique({ where: { email } });
 
-        // Always return success to prevent email enumeration
-        res.json({ success: true, message: 'If an account exists, you can now reset your password.' });
+        if (!user) {
+            return res.status(400).json({ error: 'No account found with this email address' });
+        }
+
+        // Email verified - user can proceed to reset password
+        res.json({ success: true, message: 'Email verified. You can now reset your password.' });
     } catch (error) {
         console.error('Forgot password error:', error);
         res.status(500).json({ error: 'Internal server error' });
