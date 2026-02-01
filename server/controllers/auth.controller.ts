@@ -139,3 +139,55 @@ export const refreshToken = async (req: Request, res: Response) => {
         res.status(401).json({ error: 'Invalid token' });
     }
 };
+
+// Simple forgot password - just verify email exists
+export const forgotPassword = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Check if user exists (but don't reveal if they don't for security)
+        const user = await prisma.user.findUnique({ where: { email } });
+
+        // Always return success to prevent email enumeration
+        res.json({ success: true, message: 'If an account exists, you can now reset your password.' });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Simple reset password - directly update password
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { email, newPassword } = req.body;
+
+        if (!email || !newPassword) {
+            return res.status(400).json({ error: 'Email and new password are required' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+
+        // Find user
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user) {
+            return res.status(400).json({ error: 'No account found with this email' });
+        }
+
+        // Hash new password and update
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { email },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ success: true, message: 'Password has been reset successfully' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
