@@ -1,8 +1,43 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { wordpressService } from '../services/wordpress.service';
+import multer from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 
 const prisma = new PrismaClient();
+
+// Configure multer for image uploads
+const uploadsDir = path.join(__dirname, '../../uploads/events');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, `event-${uniqueSuffix}${ext}`);
+    }
+});
+
+const fileFilter = (req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+    }
+};
+
+export const upload = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+});
 
 // --- Get all occurrences for a template ---
 export const getOccurrences = async (req: Request, res: Response) => {
@@ -395,5 +430,61 @@ export const getUpcomingOccurrences = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching upcoming occurrences:', error);
         res.status(500).json({ error: 'Failed to fetch upcoming occurrences' });
+    }
+};
+
+// --- Upload hero image for an occurrence ---
+export const uploadHeroImage = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        // Check if occurrence exists
+        const occurrence = await prisma.eventOccurrence.findUnique({
+            where: { id }
+        });
+
+        if (!occurrence) {
+            // Delete uploaded file if occurrence not found
+            fs.unlinkSync(req.file.path);
+            return res.status(404).json({ error: 'Occurrence not found' });
+        }
+
+        // Delete old image if exists
+        if (occurrence.heroImage && fs.existsSync(occurrence.heroImage)) {
+            try {
+                fs.unlinkSync(occurrence.heroImage);
+            } catch (e) {
+                console.warn('Could not delete old hero image:', e);
+            }
+        }
+
+        // Update occurrence with new image path
+        const relativePath = `events/${req.file.filename}`;
+        const updated = await prisma.eventOccurrence.update({
+            where: { id },
+            data: {
+                heroImage: relativePath,
+                wpMediaId: null, // Reset WP media ID so it re-uploads on next sync
+                wpSyncStatus: occurrence.wpPostId ? 'pending' : occurrence.wpSyncStatus,
+            },
+            include: {
+                template: { select: { name: true } }
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Hero image uploaded successfully',
+            occurrence: updated,
+            imagePath: relativePath,
+            filename: req.file.filename
+        });
+    } catch (error) {
+        console.error('Error uploading hero image:', error);
+        res.status(500).json({ error: 'Failed to upload hero image' });
     }
 };

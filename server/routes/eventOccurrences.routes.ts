@@ -8,6 +8,8 @@ import {
     syncOccurrence,
     bulkCreateOccurrences,
     getUpcomingOccurrences,
+    uploadHeroImage,
+    upload,
 } from '../controllers/eventOccurrences.controller';
 
 const router = Router();
@@ -20,6 +22,7 @@ router.get('/:id', getOccurrence);
 router.put('/:id', updateOccurrence);
 router.delete('/:id', deleteOccurrence);
 router.post('/:id/sync', syncOccurrence);
+router.post('/:id/upload-image', upload.single('image'), uploadHeroImage);
 
 // Template-scoped occurrence operations
 router.get('/template/:templateId', getOccurrences);
@@ -27,3 +30,4 @@ router.post('/template/:templateId', createOccurrence);
 router.post('/template/:templateId/bulk', bulkCreateOccurrences);
 
 export default router;
+

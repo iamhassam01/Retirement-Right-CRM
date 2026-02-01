@@ -1,5 +1,8 @@
 import axios, { AxiosError } from 'axios';
 import { PrismaClient, EventTemplate, EventOccurrence } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
+import FormData from 'form-data';
 
 const prisma = new PrismaClient();
 
@@ -74,7 +77,8 @@ export class WordPressService {
     private buildPayload(
         template: EventTemplate,
         occurrence: EventOccurrence,
-        wpStatus: 'draft' | 'publish'
+        wpStatus: 'draft' | 'publish',
+        wpMediaId?: number
     ): WordPressEventPayload {
         // Format date for title
         const eventDate = new Date(occurrence.eventDate);
@@ -123,7 +127,8 @@ export class WordPressService {
                 host_phone: template.hostPhone || undefined,
                 guide_url: template.guideUrl || undefined,
                 disclaimer: template.disclaimer || undefined,
-            }
+            },
+            featured_media: wpMediaId || undefined
         };
     }
 
@@ -219,8 +224,67 @@ export class WordPressService {
     }
 
     /**
+     * Upload an image to WordPress Media Library
+     * Returns the media ID on success
+     */
+    async uploadMediaToWordPress(imagePath: string): Promise<number> {
+        if (!this.isConfigured()) {
+            throw new Error('WordPress credentials not configured.');
+        }
+
+        // Check if file exists
+        if (!fs.existsSync(imagePath)) {
+            throw new Error(`Image file not found: ${imagePath}`);
+        }
+
+        const filename = path.basename(imagePath);
+        const formData = new FormData();
+        formData.append('file', fs.createReadStream(imagePath), {
+            filename: filename,
+            contentType: this.getMimeType(filename),
+        });
+
+        try {
+            const response = await axios.post(
+                `${WP_SITE_URL}/wp-json/wp/v2/media`,
+                formData,
+                {
+                    headers: {
+                        'Authorization': this.authHeader,
+                        ...formData.getHeaders(),
+                    },
+                    timeout: 60000, // 60 second timeout for uploads
+                }
+            );
+            return response.data.id;
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            const errorMessage = axiosError.response?.data
+                ? JSON.stringify(axiosError.response.data)
+                : axiosError.message;
+            throw new Error(`WordPress Media Upload Error: ${errorMessage}`);
+        }
+    }
+
+    /**
+     * Get MIME type from filename
+     */
+    private getMimeType(filename: string): string {
+        const ext = path.extname(filename).toLowerCase();
+        const mimeTypes: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp',
+        };
+        return mimeTypes[ext] || 'application/octet-stream';
+    }
+
+    /**
      * Sync a single occurrence to WordPress
      * Creates or updates based on whether wpPostId exists
+     * Automatically uploads heroImage to WP Media Library if not already uploaded
      */
     async syncOccurrence(
         occurrenceId: string,
@@ -237,7 +301,27 @@ export class WordPressService {
                 return { success: false, error: 'Occurrence not found' };
             }
 
-            const payload = this.buildPayload(occurrence.template, occurrence, wpStatus);
+            let wpMediaId = occurrence.wpMediaId;
+
+            // If heroImage exists but not yet uploaded to WordPress, upload it now
+            if (occurrence.heroImage && !wpMediaId) {
+                try {
+                    console.log(`Uploading hero image to WordPress: ${occurrence.heroImage}`);
+                    wpMediaId = await this.uploadMediaToWordPress(occurrence.heroImage);
+
+                    // Save the media ID immediately
+                    await prisma.eventOccurrence.update({
+                        where: { id: occurrenceId },
+                        data: { wpMediaId }
+                    });
+                    console.log(`Hero image uploaded successfully. Media ID: ${wpMediaId}`);
+                } catch (uploadError) {
+                    console.error('Failed to upload hero image:', uploadError);
+                    // Continue without featured image - don't fail the whole sync
+                }
+            }
+
+            const payload = this.buildPayload(occurrence.template, occurrence, wpStatus, wpMediaId || undefined);
 
             let wpResponse: WordPressResponse;
 
@@ -259,6 +343,7 @@ export class WordPressService {
                     wpSyncStatus: 'synced',
                     wpLastSyncedAt: new Date(),
                     wpSyncError: null,
+                    wpMediaId: wpMediaId || undefined, // Ensure media ID is saved
                 }
             });
 

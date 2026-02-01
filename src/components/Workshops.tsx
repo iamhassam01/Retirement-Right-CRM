@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
    Calendar, MapPin, Users, Edit2, Plus, Trash2, RefreshCw,
    CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronUp,
-   Globe, FileText, HelpCircle, User, ExternalLink, Loader2, X
+   Globe, FileText, HelpCircle, User, ExternalLink, Loader2, X, Image
 } from 'lucide-react';
 import Modal from './Modal';
 import {
@@ -680,6 +680,20 @@ interface OccurrenceFormProps {
 const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence, onClose, onSuccess }) => {
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [wpStatus, setWpStatus] = useState<WPStatus>(occurrence?.wpStatus || 'draft');
+   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+   const [previewUrl, setPreviewUrl] = useState<string | null>(
+      occurrence?.heroImage ? `/uploads/${occurrence.heroImage}` : null
+   );
+
+   // Handle file selection
+   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files[0]) {
+         const file = e.target.files[0];
+         setSelectedFile(file);
+         const objectUrl = URL.createObjectURL(file);
+         setPreviewUrl(objectUrl);
+      }
+   };
 
    // Form state
    const [eventDate, setEventDate] = useState(occurrence?.eventDate ? occurrence.eventDate.split('T')[0] : '');
@@ -713,11 +727,28 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
             wpStatus,
          };
 
+         let targetId = occurrence?.id;
+
          if (occurrence) {
             await eventService.updateOccurrence(occurrence.id, { ...data, wpStatus });
          } else {
-            await eventService.createOccurrence(templateId, data);
+            const newOcc = await eventService.createOccurrence(templateId, data);
+            targetId = newOcc.id;
          }
+
+         // Upload image if selected
+         if (selectedFile && targetId) {
+            await eventService.uploadHeroImage(targetId, selectedFile);
+
+            // If creating and syncing, we might need to sync again to attach the image immediately?
+            // createOccurrence autosyncs without image. uploadHeroImage resets sync status.
+            // If user selected 'publish', we should respect that.
+            if (wpStatus === 'publish' && !occurrence) {
+               // Trigger sync again to ensure image is pushed
+               await eventService.syncOccurrence(targetId, wpStatus);
+            }
+         }
+
          onSuccess();
       } catch (error) {
          console.error('Failed to save occurrence:', error);
@@ -786,6 +817,46 @@ const OccurrenceForm: React.FC<OccurrenceFormProps> = ({ templateId, occurrence,
             <label className="block text-sm font-medium text-navy-900 mb-1">Google Maps URL</label>
             <input type="url" value={mapUrl} onChange={(e) => setMapUrl(e.target.value)}
                className="w-full px-3 py-2 border border-slate-200 rounded-lg" placeholder="https://maps.app.goo.gl/..." />
+         </div>
+
+         {/* Featured Image */}
+         <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <label className="block text-sm font-medium text-navy-900 mb-2">Featured Image</label>
+            <div className="flex items-start gap-4">
+               {previewUrl ? (
+                  <div className="relative w-32 h-20 bg-slate-200 rounded-lg overflow-hidden border border-slate-300">
+                     <img src={previewUrl} alt="Featured" className="w-full h-full object-cover" />
+                     <button
+                        onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
+                        className="absolute top-1 right-1 bg-white/80 p-1 rounded-full text-slate-600 hover:text-red-500"
+                        title="Remove image"
+                     >
+                        <X size={12} />
+                     </button>
+                  </div>
+               ) : (
+                  <div className="w-32 h-20 bg-slate-100 rounded-lg border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400">
+                     <Image size={24} />
+                  </div>
+               )}
+               <div className="flex-1">
+                  <input
+                     type="file"
+                     accept="image/*"
+                     onChange={handleFileChange}
+                     className="block w-full text-sm text-slate-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-xs file:font-semibold
+                        file:bg-navy-50 file:text-navy-700
+                        hover:file:bg-navy-100
+                     "
+                  />
+                  <p className="mt-1 text-xs text-slate-500">
+                     Recommended size: 1200x630px. Max 5MB.
+                  </p>
+               </div>
+            </div>
          </div>
 
          {/* WordPress Status */}

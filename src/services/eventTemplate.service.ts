@@ -111,6 +111,21 @@ export const bulkCreateOccurrences = async (
     return response.data;
 };
 
+export const uploadHeroImage = async (
+    id: string,
+    file: File
+): Promise<{ success: boolean; imagePath: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await api.post(`/event-occurrences/${id}/upload-image`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data'
+        }
+    });
+    return response.data;
+};
+
 // ========== HELPERS ==========
 
 export const formatEventDate = (dateString: string): string => {

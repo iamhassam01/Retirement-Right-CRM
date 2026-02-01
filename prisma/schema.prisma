@@ -410,7 +410,8 @@ model EventOccurrence {
   // Event-specific
   capacity    Int?
   registered  Int?     @default(0)
-  heroImage   String?  // Featured image URL
+  heroImage   String?  // Local path to uploaded featured image
+  wpMediaId   Int?     // WordPress Media Library ID after upload
   
   // Status
   status      String   @default("scheduled") // scheduled, completed, cancelled
