@@ -1,4 +1,4 @@
-import axios from 'axios';
+import api from '../api/axios';
 import {
     EventTemplate,
     EventOccurrence,
@@ -8,24 +8,22 @@ import {
     WPStatus
 } from '../types';
 
-const API_URL = '/api';
-
 // ========== EVENT TEMPLATES ==========
 
 export const getEventTemplates = async (includeInactive = false): Promise<EventTemplate[]> => {
-    const response = await axios.get(`${API_URL}/event-templates`, {
+    const response = await api.get('/event-templates', {
         params: { includeInactive }
     });
     return response.data;
 };
 
 export const getEventTemplate = async (id: string): Promise<EventTemplate> => {
-    const response = await axios.get(`${API_URL}/event-templates/${id}`);
+    const response = await api.get(`/event-templates/${id}`);
     return response.data;
 };
 
 export const createEventTemplate = async (data: CreateEventTemplateInput): Promise<EventTemplate> => {
-    const response = await axios.post(`${API_URL}/event-templates`, data);
+    const response = await api.post('/event-templates', data);
     return response.data;
 };
 
@@ -33,19 +31,19 @@ export const updateEventTemplate = async (
     id: string,
     data: Partial<CreateEventTemplateInput & { isActive: boolean }>
 ): Promise<EventTemplate> => {
-    const response = await axios.put(`${API_URL}/event-templates/${id}`, data);
+    const response = await api.put(`/event-templates/${id}`, data);
     return response.data;
 };
 
 export const deleteEventTemplate = async (id: string): Promise<void> => {
-    await axios.delete(`${API_URL}/event-templates/${id}`);
+    await api.delete(`/event-templates/${id}`);
 };
 
 export const syncTemplateToWordPress = async (
     id: string,
     status: WPStatus = 'draft'
 ): Promise<SyncResult> => {
-    const response = await axios.post(`${API_URL}/event-templates/${id}/sync`, { status });
+    const response = await api.post(`/event-templates/${id}/sync`, { status });
     return response.data;
 };
 
@@ -55,21 +53,21 @@ export const getOccurrences = async (
     templateId: string,
     options?: { status?: string; upcoming?: boolean }
 ): Promise<EventOccurrence[]> => {
-    const response = await axios.get(`${API_URL}/event-occurrences/template/${templateId}`, {
+    const response = await api.get(`/event-occurrences/template/${templateId}`, {
         params: options
     });
     return response.data;
 };
 
 export const getUpcomingOccurrences = async (limit = 20): Promise<EventOccurrence[]> => {
-    const response = await axios.get(`${API_URL}/event-occurrences/upcoming`, {
+    const response = await api.get('/event-occurrences/upcoming', {
         params: { limit }
     });
     return response.data;
 };
 
 export const getOccurrence = async (id: string): Promise<EventOccurrence> => {
-    const response = await axios.get(`${API_URL}/event-occurrences/${id}`);
+    const response = await api.get(`/event-occurrences/${id}`);
     return response.data;
 };
 
@@ -77,7 +75,7 @@ export const createOccurrence = async (
     templateId: string,
     data: CreateOccurrenceInput
 ): Promise<EventOccurrence> => {
-    const response = await axios.post(`${API_URL}/event-occurrences/template/${templateId}`, data);
+    const response = await api.post(`/event-occurrences/template/${templateId}`, data);
     return response.data;
 };
 
@@ -85,19 +83,19 @@ export const updateOccurrence = async (
     id: string,
     data: Partial<CreateOccurrenceInput & { status: string }>
 ): Promise<EventOccurrence> => {
-    const response = await axios.put(`${API_URL}/event-occurrences/${id}`, data);
+    const response = await api.put(`/event-occurrences/${id}`, data);
     return response.data;
 };
 
 export const deleteOccurrence = async (id: string): Promise<void> => {
-    await axios.delete(`${API_URL}/event-occurrences/${id}`);
+    await api.delete(`/event-occurrences/${id}`);
 };
 
 export const syncOccurrence = async (
     id: string,
     status: WPStatus = 'draft'
 ): Promise<{ success: boolean; occurrence?: EventOccurrence; error?: string }> => {
-    const response = await axios.post(`${API_URL}/event-occurrences/${id}/sync`, { status });
+    const response = await api.post(`/event-occurrences/${id}/sync`, { status });
     return response.data;
 };
 
@@ -106,7 +104,7 @@ export const bulkCreateOccurrences = async (
     occurrences: CreateOccurrenceInput[],
     wpStatus: WPStatus = 'draft'
 ): Promise<{ created: number; synced: number; failed: number; errors: string[] }> => {
-    const response = await axios.post(`${API_URL}/event-occurrences/template/${templateId}/bulk`, {
+    const response = await api.post(`/event-occurrences/template/${templateId}/bulk`, {
         occurrences,
         wpStatus
     });
