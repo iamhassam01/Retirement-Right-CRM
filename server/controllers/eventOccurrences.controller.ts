@@ -8,7 +8,7 @@ import * as fs from 'fs';
 const prisma = new PrismaClient();
 
 // Configure multer for image uploads
-const uploadsDir = path.join(__dirname, '../../uploads/events');
+const uploadsDir = path.join(process.cwd(), 'uploads/events');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
