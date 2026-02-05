@@ -108,7 +108,7 @@ export class WordPressService {
             slug,
             acf: {
                 subtitle: template.subtitle || undefined,
-                learnings: template.learnings || [],
+                learnings: Array.isArray(template.learnings) ? (template.learnings as string[]).map(point => ({ point })) : [],
                 why_attend: template.whyAttend || undefined,
                 faqs,
                 venue_name: occurrence.venueName,
@@ -306,8 +306,9 @@ export class WordPressService {
             // If heroImage exists but not yet uploaded to WordPress, upload it now
             if (occurrence.heroImage && !wpMediaId) {
                 try {
-                    console.log(`Uploading hero image to WordPress: ${occurrence.heroImage}`);
-                    wpMediaId = await this.uploadMediaToWordPress(occurrence.heroImage);
+                    const fullImagePath = path.join(process.cwd(), 'uploads', occurrence.heroImage);
+                    console.log(`Uploading hero image to WordPress: ${fullImagePath}`);
+                    wpMediaId = await this.uploadMediaToWordPress(fullImagePath);
 
                     // Save the media ID immediately
                     await prisma.eventOccurrence.update({

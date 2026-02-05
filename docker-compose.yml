@@ -12,6 +12,9 @@ services:
       - JWT_SECRET=super_secret_jwt_key_change_in_production
       - NODE_ENV=production
       - PORT=3001
+      - WP_SITE_URL=${WP_SITE_URL:-https://retirement-right.com}
+      - WP_USERNAME=${WP_USERNAME}
+      - WP_APP_PASSWORD=${WP_APP_PASSWORD}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
